@@ -6,10 +6,8 @@ const BookingSection = () => {
     <section className="flex flex-col md:flex-row min-h-[60vh]">
       {/* Left Box */}
       <div className="bg-[#D3AE00] text-white flex justify-center items-center w-full md:w-1/2 p-10">
-        <div className="bg-white text-black p-8 max-w-sm">
-          <h2 className="text-xl font-semibold mb-2">
-            Begin your Booking Here
-          </h2>
+        <div className="bg-white text-black p-8 max-w-md h-1/2">
+          <h2 className="text-2xl mb-2">Begin your Booking Here</h2>
           <p className="text-sm">
             Designed by a team of seasoned architects, designers and
             connoisseurs
