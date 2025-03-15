@@ -1,5 +1,4 @@
 "use client";
-import Marquee from "react-fast-marquee";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
@@ -11,9 +10,7 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <h2 className="text-2xl font-semibold my-3">
-        Welcome back Administrator!
-      </h2>
+      <h2 className="text-2xl font-semibold my-3">Let’s Create your Account</h2>
 
       <Input
         type="email"
@@ -35,13 +32,13 @@ export default function LoginPage() {
       </div>
 
       <Button className="w-full bg-[#F4DE00] h-[50px] text-white text-lg">
-        Login
+        Create Account
       </Button>
 
       <p className="mt-4 text-sm text-gray-600">
-        Don’t have an account yet?{" "}
+        Already have an Account?{" "}
         <a href="/signup" className="text-black font-semibold">
-          Sign up now
+          Login
         </a>
       </p>
     </AuthLayout>

@@ -1,0 +1,122 @@
+import React from "react";
+import {
+  Mail,
+  Home,
+  Inbox,
+  UserRound,
+  Album,
+  BedSingle,
+  Sparkles,
+  DoorOpen,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { Avatar } from "@radix-ui/react-avatar";
+import { AvatarFallback } from "./ui/avatar";
+import Link from "next/link";
+
+// Menu items.
+const items = [
+  {
+    groupTitle: "Quick Access",
+    content: [
+      {
+        title: "HomePage",
+        url: "#",
+        icon: Home,
+      },
+      {
+        title: "Bookings",
+        url: "#",
+        icon: Album,
+      },
+    ],
+  },
+  {
+    groupTitle: "Management",
+    content: [
+      {
+        title: "Guests",
+        url: "#",
+        icon: UserRound,
+      },
+      {
+        title: "Reservtion",
+        url: "#",
+        icon: Mail,
+      },
+    ],
+  },
+  {
+    groupTitle: "Services",
+    content: [
+      {
+        title: "Rooms",
+        url: "#",
+        icon: DoorOpen,
+      },
+      {
+        title: "Apartments",
+        url: "#",
+        icon: BedSingle,
+      },
+      {
+        title: "Spa & Fitness",
+        url: "#",
+        icon: Sparkles,
+      },
+    ],
+  },
+];
+
+export function AppSidebar() {
+  return (
+    <Sidebar>
+      <SidebarHeader className="px-10 py-7 flex items-center flex-row justify-center">
+        <Avatar className="">
+          {/* <AvatarImage src="https://github.com/shadcn.png" /> */}
+          <AvatarFallback className="bg-black text-white p-2 px-2.5">
+            FD
+          </AvatarFallback>
+        </Avatar>
+        <h1 className="text-xl ml-3">Front Desk</h1>
+        <p></p>
+      </SidebarHeader>
+      <SidebarContent className="pl-2">
+        {items.map((item, index) => (
+          <SidebarGroup key={index}>
+            <SidebarGroupLabel className="text-md mb-2 font-normal">
+              {item.groupTitle}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {item.content.map((subItem) => (
+                  <SidebarMenuItem
+                    key={subItem.title}
+                    className="mb-2 sidebar transition py-1"
+                  >
+                    <SidebarMenuButton asChild>
+                      <Link href={subItem.url}>
+                        <subItem.icon />
+                        <span className="text-[17px]">{subItem.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+    </Sidebar>
+  );
+}

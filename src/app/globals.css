@@ -117,7 +117,19 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.sidebar:hover {
+  background: #FDFFE7;
+  color: #AB8000;
+}
+
+.auth-layout {
+  background: url("../../public/bg/AuthLayoutBg.png");
+  background-size: cover;
+  background-position: bottom;
 }
