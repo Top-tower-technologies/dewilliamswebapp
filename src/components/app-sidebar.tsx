@@ -1,3 +1,4 @@
+"use client"
 import React from "react";
 import {
   Mail,
@@ -8,10 +9,13 @@ import {
   BedSingle,
   Sparkles,
   DoorOpen,
+  PowerCircle,
+  Power,
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -23,6 +27,7 @@ import {
 import { Avatar } from "@radix-ui/react-avatar";
 import { AvatarFallback } from "./ui/avatar";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 // Menu items.
 const items = [
@@ -31,7 +36,7 @@ const items = [
     content: [
       {
         title: "HomePage",
-        url: "#",
+        url: "/dashboard",
         icon: Home,
       },
       {
@@ -79,6 +84,7 @@ const items = [
 ];
 
 export function AppSidebar() {
+  const pathname = usePathname()
   return (
     <Sidebar>
       <SidebarHeader className="px-10 py-7 flex items-center flex-row justify-center">
@@ -102,9 +108,9 @@ export function AppSidebar() {
                 {item.content.map((subItem) => (
                   <SidebarMenuItem
                     key={subItem.title}
-                    className="mb-2 sidebar transition py-1"
+                    className={`mb-2 transition py-1 ${pathname === subItem.url ? "bg-[#FDFFE7] text-[#AB8000]" : "sidebar"}`}
                   >
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild className="sidebar">
                       <Link href={subItem.url}>
                         <subItem.icon />
                         <span className="text-[17px]">{subItem.title}</span>
@@ -117,6 +123,15 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
+      <SidebarFooter className="pl-2">
+          <SidebarMenu>
+            <SidebarMenuButton className="logout py-4 text-[#FF646E]">
+              <Power/>
+              <span className="text-[17px]">Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

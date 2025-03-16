@@ -127,6 +127,10 @@
   background: #FDFFE7;
   color: #AB8000;
 }
+.logout:hover {
+  background: #ff646e26;
+  color: #FF646E;
+}
 
 .auth-layout {
   background: url("../../public/bg/AuthLayoutBg.png");
