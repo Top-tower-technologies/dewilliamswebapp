@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Filter, MoreVertical } from "lucide-react"
+import { ChevronDown, Filter, MoreVertical, SlidersHorizontal } from "lucide-react"
 import { FilterModal } from "./FilterModal"
 
 const dummyData = new Array(50).fill(null).map((_, i) => ({
@@ -123,7 +123,7 @@ export default function GuestTable() {
         >
           Clear Filters
         </Button> */}
-        <Button onClick={() => {setIsFilterOpen(true)}} variant={"outline"}> <Filter/> Filter</Button>
+        <Button onClick={() => {setIsFilterOpen(true)}} variant={"outline"}> <SlidersHorizontal /> Filter</Button>
       </div>
 
       {/* Table */}
