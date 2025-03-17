@@ -1,47 +1,129 @@
-// components/GuestTable.tsx
 "use client"
 
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, MoreVertical } from "lucide-react"
+import { ChevronDown, Filter, MoreVertical } from "lucide-react"
+import { FilterModal } from "./FilterModal"
 
-const data = new Array(10).fill({
-  guestId: "16bh9489g",
-  fullName: "Oyefeso Afolabi",
-  bookingId: "B002",
-  room: "#401",
-  phone: "07057997839",
-  amount: "₦200,000",
-  occupancy: "3 Persons",
-  status: "Checked-Out", // Booked, Checked-in
-})
+const dummyData = new Array(50).fill(null).map((_, i) => ({
+  guestId: `16bh9489g-${i + 1}`,
+  fullName: `Guest ${i + 1}`,
+  bookingId: `B00${i + 1}`,
+  room: `#${400 + i}`,
+  phone: `0705${Math.floor(1000000 + Math.random() * 9000000)}`,
+  amount: `₦${(150000 + i * 1000).toLocaleString()}`,
+  occupancy: `${1 + (i % 3)} Persons`,
+  status: ["Booked", "Checked-in", "Checked-Out"][i % 3],
+}))
+
+const perPage = 10
 
 export default function GuestTable() {
+  const [search, setSearch] = useState("")
+  const [statusFilters, setStatusFilters] = useState<string[]>([])
+  const [dateFilter, setDateFilter] = useState("Today")
+  const [page, setPage] = useState(1)
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const handleToggleStatus = (status: string) => {
+    setStatusFilters((prev) =>
+      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+    )
+  }
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value)
+    setPage(1)
+  }
+
+  const filteredData = dummyData.filter((guest) => {
+    const matchesSearch =
+      guest.guestId.toLowerCase().includes(search.toLowerCase()) ||
+      guest.fullName.toLowerCase().includes(search.toLowerCase())
+
+    const matchesStatus =
+      statusFilters.length === 0 || statusFilters.includes(guest.status)
+
+    return matchesSearch && matchesStatus
+  })
+
+  const totalPages = Math.ceil(filteredData.length / perPage)
+  const paginatedData = filteredData.slice((page - 1) * perPage, page * perPage)
+
   return (
     <div className="space-y-4 p-5">
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-2">
-          <Input placeholder="Search for an ID" className="w-[200px]" />
+        <div className="flex gap-2 flex-wrap">
+          <Input
+            placeholder="Search by ID or name"
+            className="w-[200px]"
+            value={search}
+            onChange={handleSearchChange}
+          />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-[120px] justify-between">
-                Today <ChevronDown className="h-4 w-4 ml-2" />
+                {dateFilter} <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem>Today</DropdownMenuItem>
-              <DropdownMenuItem>This Week</DropdownMenuItem>
-              <DropdownMenuItem>This Month</DropdownMenuItem>
+              {["Today", "This Week", "This Month"].map((range) => (
+                <DropdownMenuItem key={range} onClick={() => setDateFilter(range)}>
+                  {range}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Badge variant="outline" className="bg-pink-100 text-pink-600">Checked-in ✕</Badge>
-          <Badge variant="outline" className="bg-green-100 text-green-600">Booked ✕</Badge>
+
+          {["Checked-in", "Booked", "Checked-Out"].map((status) =>
+            statusFilters.includes(status) ? (
+              <Badge
+                key={status}
+                variant="outline"
+                className={`${
+                  status === "Checked-in"
+                    ? "bg-pink-100 text-pink-600"
+                    : status === "Booked"
+                    ? "bg-green-100 text-green-600"
+                    : "bg-gray-100 text-gray-600"
+                } cursor-pointer`}
+                onClick={() => handleToggleStatus(status)}
+              >
+                {status} ✕
+              </Badge>
+            ) : null
+          )}
         </div>
-        <Button variant="outline">Filter</Button>
+
+        {/* <Button
+          variant="outline"
+          onClick={() => {
+            setSearch("")
+            setStatusFilters([])
+            setDateFilter("Today")
+          }}
+        >
+          Clear Filters
+        </Button> */}
+        <Button onClick={() => {setIsFilterOpen(true)}} variant={"outline"}> <Filter/> Filter</Button>
       </div>
 
       {/* Table */}
@@ -60,7 +142,7 @@ export default function GuestTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((guest, index) => (
+          {paginatedData.map((guest, index) => (
             <TableRow key={index}>
               <TableCell className="text-blue-600 underline">{guest.guestId}</TableCell>
               <TableCell>{guest.fullName}</TableCell>
@@ -94,13 +176,43 @@ export default function GuestTable() {
 
       {/* Pagination */}
       <div className="flex justify-between items-center pt-4">
-        <p className="text-sm text-muted-foreground">Page 1 of 30</p>
+        <p className="text-sm text-muted-foreground">
+          Page {page} of {totalPages}
+        </p>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">← Previous</Button>
-          <Button variant="default" size="sm" className="bg-yellow-200 text-black">3</Button>
-          <Button variant="outline" size="sm">Next →</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            ← Previous
+          </Button>
+          {[...Array(totalPages).keys()]
+            .slice(Math.max(0, page - 2), page + 1)
+            .map((i) => (
+              <Button
+                key={i}
+                variant={page === i + 1 ? "default" : "outline"}
+                size="sm"
+                className={page === i + 1 ? "bg-yellow-200 text-black" : ""}
+                onClick={() => setPage(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Next →
+          </Button>
         </div>
       </div>
+
+      <FilterModal open={isFilterOpen} onClose={() => setIsFilterOpen(false)} />
     </div>
   )
 }
