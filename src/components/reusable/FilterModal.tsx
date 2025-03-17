@@ -24,9 +24,9 @@ export function FilterModal({ open, onClose }: { open: boolean; onClose: () => a
     to: new Date(),
   });
 
-  const [selectedAmounts, setSelectedAmounts] = useState<string[]>(['<50k']);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['Booked', 'Checked-in']);
-  const [roomNumbers, setRoomNumbers] = useState<string[]>(['400']);
+  const [selectedAmounts, setSelectedAmounts] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [roomNumbers, setRoomNumbers] = useState<string[]>([]);
   const [roomInput, setRoomInput] = useState('');
 
   const amountOptions = [
