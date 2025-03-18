@@ -75,9 +75,6 @@ export function FilterModal({ open, onClose }: { open: boolean; onClose: () => a
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center">
             <span>Filter</span>
-            {/* <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button> */}
           </DialogTitle>
         </DialogHeader>
 
