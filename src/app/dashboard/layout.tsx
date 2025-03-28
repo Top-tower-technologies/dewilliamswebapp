@@ -8,7 +8,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <main className="w-full">
         <SidebarTrigger />
-        <Navbar />
         <div className="w-full bg-[#FBFBFB]">
           {children}
         </div>

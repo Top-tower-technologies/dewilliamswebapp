@@ -41,7 +41,7 @@ const items = [
       },
       {
         title: "Bookings",
-        url: "#",
+        url: "/dashboard/bookings",
         icon: Album,
       },
     ],
@@ -51,12 +51,12 @@ const items = [
     content: [
       {
         title: "Guests",
-        url: "#",
+        url: "/dashboard/guests",
         icon: UserRound,
       },
       {
         title: "Reservtion",
-        url: "#",
+        url: "/dashboard/reservation",
         icon: Mail,
       },
     ],
@@ -66,17 +66,17 @@ const items = [
     content: [
       {
         title: "Rooms",
-        url: "#",
+        url: "/dashboard/rooms",
         icon: DoorOpen,
       },
       {
         title: "Apartments",
-        url: "#",
+        url: "/dashboard/apartments",
         icon: BedSingle,
       },
       {
         title: "Spa & Fitness",
-        url: "#",
+        url: "/dashboard/spa-fitness",
         icon: Sparkles,
       },
     ],
