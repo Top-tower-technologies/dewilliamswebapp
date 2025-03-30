@@ -36,7 +36,7 @@ const items = [
     content: [
       {
         title: "HomePage",
-        url: "/dashboard",
+        url: "/dashboard/home",
         icon: Home,
       },
       {
@@ -108,7 +108,7 @@ export function AppSidebar() {
                 {item.content.map((subItem) => (
                   <SidebarMenuItem
                     key={subItem.title}
-                    className={`mb-2 transition py-1 ${pathname === subItem.url ? "bg-[#FDFFE7] text-[#AB8000]" : "sidebar"}`}
+                    className={`mb-2 transition py-1 ${pathname.includes(subItem.url)? "bg-[#FDFFE7] text-[#AB8000]" : "sidebar"}`}
                   >
                     <SidebarMenuButton asChild className="sidebar">
                       <Link href={subItem.url}>
@@ -125,12 +125,12 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="pl-2">
-          <SidebarMenu>
-            <SidebarMenuButton className="logout py-4 text-[#FF646E]">
-              <Power/>
-              <span className="text-[17px]">Logout</span>
-            </SidebarMenuButton>
-          </SidebarMenu>
+        <SidebarMenu>
+          <SidebarMenuButton className="logout py-4 text-[#FF646E]">
+            <Power />
+            <span className="text-[17px]">Logout</span>
+          </SidebarMenuButton>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

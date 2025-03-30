@@ -1,12 +1,11 @@
+import MainLayout from "@/components/layout/MainLayout";
 import DashboardCard from "@/components/reusable/DashboardCard";
 import GuestTable from "@/components/reusable/GuestTable";
-import Navbar from "@/components/reusable/Navbar";
 import React from "react";
 
 const page = () => {
   return (
-    <>
-      <Navbar />
+    <MainLayout buttonText={"Download data"}>
       <section className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <DashboardCard
           title="Total Bookings"
@@ -40,7 +39,7 @@ const page = () => {
       </section>
 
       <GuestTable />
-    </>
+    </MainLayout>
   );
 };
 
