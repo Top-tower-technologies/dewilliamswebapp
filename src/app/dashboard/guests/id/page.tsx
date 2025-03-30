@@ -2,14 +2,23 @@
 import MainLayout from '@/components/layout/MainLayout'
 import PageHeader from '@/components/reusable/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
-import { ChevronLeftCircle, ChevronRight, FileDown } from 'lucide-react'
+import { ChevronLeftCircle, ChevronRight, FileDown, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import React from 'react'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import React, { useState } from 'react'
 
 const page = () => {
+    const [open, setOpen] = useState(false)
     return (
-        <MainLayout navigation={<PageHeader page='Guests' subpage='Oyefeso Afolabi'/>} customButton={<Button variant="destructive" onClick={() => { }}>Check Out</Button>} buttonText={""} buttonVisible={true}>
+        <MainLayout navigation={<PageHeader page='Guests' subpage='Oyefeso Afolabi' />} customButton={<Button variant="destructive" onClick={() => { setOpen(true) }}>Check Out</Button>} buttonText={""} buttonVisible={true}>
             <div className="container mx-auto py-6 px-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Left Column - Guest Information */}
@@ -134,6 +143,25 @@ const page = () => {
                     </Card>
                 </div>
             </div>
+            <Dialog open={open} onOpenChange={() => setOpen(false)}>
+                <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
+                    <div className="p-8 bg-[#FFF1F2] rounded-full grid place-items-start">
+
+                        <TriangleAlert size={80} className="text-[#ED1522]" />
+                    </div>
+                    {/* <DialogHeader> */}
+                    <DialogTitle className="text-2xl">You’re about to checkout a guest!</DialogTitle>
+                    <DialogDescription className="text-center text-md">
+                        Once a guest is checked out, the process cannot be reversed.
+                    </DialogDescription>
+                    {/* </DialogHeader> */}
+
+                    <div className="grid space-y-2">
+                        <Button variant="destructive" onClick={() => { }}>Yes, Check Out</Button>
+                        <Button variant="ghost" onClick={() => { setOpen(false) }}>No, Go back</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </MainLayout>
     )
 }
