@@ -23,7 +23,7 @@ const MainLayout = ({ children, navigation, buttonText, handleClick, buttonVisib
                     </div>
                 </div>
             </header>
-            <div>
+            <div className='h-fit'>
                 {children}
             </div>
         </>
