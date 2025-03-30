@@ -10,7 +10,9 @@ import React from 'react'
 
 const page = () => {
     return (
-        <MainLayout navigation={<div className='flex justify-center gap-x-3 items-center'> <Link href={"/dashboard/bookings"}> <ChevronLeftCircle className='text-[#8F8F8F52] hover:text-[#000]' size={30} /> </Link> <p className='text-[20px] font-[400] text-[#8F8F8F]'>Booking</p> <ChevronRight /> <p className='text-[20px] font-[400]'>New Booking</p></div>} buttonText={""} buttonVisible={true} >
+        <MainLayout
+            navigation={<div className='flex justify-center gap-x-3 items-center'> <Link href={"/dashboard/bookings"}> <ChevronLeftCircle className='text-[#8F8F8F52] hover:text-[#000]' size={30} /> </Link> <p className='text-[20px] font-[400] text-[#8F8F8F]'>Booking</p> <ChevronRight /> <p className='text-[20px] font-[400]'>New Booking</p></div>}
+            buttonText={""} buttonVisible={true} >
             <div className="p-6 grid grid-cols-3 gap-6">
                 {/* Booking Details */}
                 <Card className="col-span-2">
@@ -98,7 +100,7 @@ const page = () => {
                                 <div className="flex items-center relative">
                                     <label className="block w-full">
                                         <span className="text-sm text-gray-600">Discount Code</span>
-                                        <Input value="82hKNHI92" readOnly className=''/>
+                                        <Input value="82hKNHI92" readOnly className='' />
                                     </label>
                                     <span className="text-[#007E0A] text-xs p-1 rounded right-2 top-1/2 block absolute bg-[#ECFFED]">Saved 20%</span>
                                 </div>

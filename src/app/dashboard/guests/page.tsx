@@ -1,8 +1,10 @@
 // app/page.jsx
 'use client'
 
+import MainLayout from "@/components/layout/MainLayout";
 import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { OccupancyTrendCard } from "@/components/reusable/OccupancyTrendCard";
+import PageHeader from "@/components/reusable/PageHeader";
 import { StatCard } from "@/components/reusable/StatCard";
 
 
@@ -18,42 +20,44 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard 
-          title="Total Guests" 
-          value="256" 
-          change={15.2} 
-          previousValue="from 6,532 (last week)" 
-        />
-        <StatCard 
-          title="Currently Checked-In" 
-          value="32" 
-          change={15.2} 
-          previousValue="from 6,532 (last week)" 
-        />
-        <StatCard 
-          title="Checked-Out Today" 
-          value="115" 
-          change={15.2} 
-          previousValue="from 6,532 (last week)" 
-        />
-        <StatCard 
-          title="Checked-Out Today" 
-          value="6,672" 
-          change={15.2} 
-          previousValue="from 6,532 (last week)" 
-        />
-      </div>
+    <MainLayout buttonText={""} buttonVisible={true} navigation={<PageHeader page='Guests' icon={false}/>}>
+      <div className="container mx-auto py-6 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+          <StatCard
+            title="Total Guests"
+            value="256"
+            change={15.2}
+            previousValue="from 6,532 (last week)"
+          />
+          <StatCard
+            title="Currently Checked-In"
+            value="32"
+            change={15.2}
+            previousValue="from 6,532 (last week)"
+          />
+          <StatCard
+            title="Checked-Out Today"
+            value="115"
+            change={15.2}
+            previousValue="from 6,532 (last week)"
+          />
+          <StatCard
+            title="Checked-Out Today"
+            value="6,672"
+            change={15.2}
+            previousValue="from 6,532 (last week)"
+          />
+        </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <GuestDetailsCard guestData={guestData} />
-        </div>
-        <div className="lg:col-span-1">
-          <OccupancyTrendCard />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <GuestDetailsCard guestData={guestData} />
+          </div>
+          <div className="lg:col-span-1">
+            <OccupancyTrendCard />
+          </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }
