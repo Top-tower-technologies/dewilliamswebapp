@@ -123,7 +123,6 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-
       <SidebarFooter className="pl-2">
         <SidebarMenu>
           <SidebarMenuButton className="logout py-4 text-[#FF646E]">
