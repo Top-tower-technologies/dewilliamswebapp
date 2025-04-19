@@ -1,5 +1,5 @@
 "use client"
-import React from "react";
+import React, { useState } from "react";
 import {
   Mail,
   Home,
@@ -28,6 +28,7 @@ import { Avatar } from "@radix-ui/react-avatar";
 import { AvatarFallback } from "./ui/avatar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Toast from "./reusable/Toast";
 
 // Menu items.
 const items = [
@@ -84,7 +85,13 @@ const items = [
 ];
 
 export function AppSidebar() {
+  const [showToast, setShowToast] = useState(false)
   const pathname = usePathname()
+  const handleLogout = () => {
+    localStorage.removeItem("AuthKey");
+    setShowToast(true)
+
+  };
   return (
     <Sidebar>
       <SidebarHeader className="px-10 py-7 flex items-center flex-row justify-center">
@@ -125,12 +132,17 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="pl-2">
         <SidebarMenu>
-          <SidebarMenuButton className="logout py-4 text-[#FF646E]">
+          <SidebarMenuButton className="logout py-4 text-[#FF646E]" onClick={handleLogout}>
             <Power />
             <span className="text-[17px]">Logout</span>
           </SidebarMenuButton>
         </SidebarMenu>
       </SidebarFooter>
+
+      {showToast && (
+        <Toast
+        message="Successfully Logged Out"/>
+      )}
     </Sidebar>
   );
 }

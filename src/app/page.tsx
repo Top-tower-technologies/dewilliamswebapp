@@ -2,15 +2,50 @@
 import Marquee from "react-fast-marquee";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { useState } from "react";
 import AuthLayout from "@/components/layout/AuthLayout";
+import { apiService } from "@/api/apiService";
+import Toast from "@/components/reusable/Toast";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info" | "warning">("success");
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.login(email, password);
+      localStorage.setItem('AuthKey', response.data.data.token);
+      router.push("/dashboard/home");
+      setToastMessage(response.data.message || "Login successful");
+      setToastType("success");
+      setShowToast(true);
+    } catch (error: any) {
+      setToastMessage(error.data.message || "Login failed");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+  // const [showPassword, setShowPassword] = useState(false);
 
   return (
     <AuthLayout>
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+        />
+      )}
       <h2 className="text-2xl font-semibold my-3">
         Welcome back Administrator!
       </h2>
@@ -19,6 +54,8 @@ export default function LoginPage() {
         type="email"
         placeholder="Enter your Email Address"
         className="my-4 h-[50px]"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
       />
 
       <div className="relative w-full mb-8 h-[50px]">
@@ -26,6 +63,8 @@ export default function LoginPage() {
           type={showPassword ? "text" : "password"}
           placeholder="Enter your Password"
           className="pr-10 h-full"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
         <Eye
           className="absolute right-3 top-4 cursor-pointer text-gray-500"
@@ -34,8 +73,8 @@ export default function LoginPage() {
         />
       </div>
 
-      <Button className="w-full bg-[#F4DE00] h-[50px] text-white text-lg">
-        Login
+      <Button className="w-full bg-[#F4DE00] h-[50px] text-white text-lg" onClick={handleLogin}>
+        {loading ? <Loader2 /> : "Sign In"}
       </Button>
 
       <p className="mt-4 text-sm text-gray-600">

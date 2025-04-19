@@ -37,7 +37,7 @@ export default function LoginPage() {
 
       <p className="mt-4 text-sm text-gray-600">
         Already have an Account?{" "}
-        <a href="/signup" className="text-black font-semibold">
+        <a href="/signin" className="text-black font-semibold">
           Login
         </a>
       </p>
