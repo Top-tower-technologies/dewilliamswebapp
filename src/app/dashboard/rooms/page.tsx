@@ -7,14 +7,39 @@ import { OccupancyTrendCard } from "@/components/reusable/OccupancyTrendCard";
 import PageHeader from "@/components/reusable/PageHeader";
 import { StatCard } from "@/components/reusable/StatCard";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { ChevronLeft, ChevronRight, List, SlidersHorizontal } from 'lucide-react';
+import axiosInstance from "@/api/axiosInstance";
 
 
 export default function Dashboard() {
+  const [dashboardData, setDashboardData] = useState({
+    total_reservations: 0,
+    pending_reservations: 0,
+    canceled_reservations: 0,
+    confirmed_reservations: 0,
+    occupied_rooms: 0,
+    available_rooms: 0,
+    occupied_apartments: 0,
+    available_apartments: 0,
+  });
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await axiosInstance.get("/staff/dashboard");
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   const guestData = [
     { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Pending' },
     { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
@@ -83,7 +108,6 @@ export default function Dashboard() {
     ],
   };
 
-  // Function to determine if a cell has a booking
   const getBookingForCell = (roomId: string, day: number) => {
     const roomBookings = bookings[roomId] || [];
     return roomBookings.find(booking =>
@@ -91,12 +115,10 @@ export default function Dashboard() {
     );
   };
 
-  // Function to get booking span (to handle multi-day bookings)
   const getBookingSpan = (roomId: string, day: number) => {
     const booking = getBookingForCell(roomId, day);
     if (!booking) return null;
 
-    // Calculate how many days are visible in the current view
     const daysRemaining = booking.startDay + booking.nights - day;
     const visibleDays = Math.min(daysRemaining, booking.startDay + booking.nights - day);
 
@@ -107,7 +129,6 @@ export default function Dashboard() {
     };
   };
 
-  // Group rooms by type
   const roomsByType = rooms.reduce((acc: Record<string, typeof rooms>, room) => {
     if (!acc[room.type]) {
       acc[room.type] = [];
@@ -116,36 +137,38 @@ export default function Dashboard() {
     return acc;
   }, {} as Record<string, typeof rooms>);
 
+
   return (
     <MainLayout buttonText={""} buttonVisible={true} navigation={<PageHeader page='Rooms' icon={false} />}>
       <div className="container mx-auto py-6 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
-            title="Occupied Room"
-            value="256"
+            title="Occupied Rooms"
+            value={dashboardData.occupied_rooms.toString()}
             change={15.2}
-            previousValue="from 6,532 (last week)"
+            previousValue="from last week"
           />
           <StatCard
             title="Guest Satisfaction"
             value="32"
             change={15.2}
-            previousValue="from 6,532 (last week)"
+            previousValue="from last week"
           />
           <StatCard
             title="Available Rooms"
-            value="115"
+            value={dashboardData.available_rooms.toString()}
             change={15.2}
-            previousValue="from 6,532 (last week)"
+            previousValue="from last week"
           />
           <StatCard
-            title="Cancelled bookings"
-            value="6,672"
+            title="Cancelled Bookings"
+            value={dashboardData.canceled_reservations.toString()}
             change={15.2}
             negative={true}
-            previousValue="from 6,532 (last week)"
+            previousValue="from last week"
           />
         </div>
+
 
         <Tabs defaultValue="list" className="w-">
           <div className="flex justify-end mb-6">
