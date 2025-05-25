@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { ChevronLeft, ChevronRight, List, SlidersHorizontal } from 'lucide-react';
 import axiosInstance from "@/api/axiosInstance";
+import { DynamicTable } from "@/components/reusable/GuestTable";
 
 
 export default function Dashboard() {
@@ -39,16 +40,6 @@ export default function Dashboard() {
 
     fetchDashboardData();
   }, []);
-
-  const guestData = [
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Pending' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '#16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Pending' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-  ];
 
   // Sample data for room bookings
   const rooms = [
@@ -137,6 +128,100 @@ export default function Dashboard() {
     return acc;
   }, {} as Record<string, typeof rooms>);
 
+  const columns = [
+    { key: 'guestId', header: 'Guest ID', cellClassName: 'font-medium' },
+    { key: 'name', header: 'Full Name', },
+    { key: 'bookingId', header: 'Booking ID', },
+    { key: 'roomNo', header: 'Room No' },
+    { key: 'capacity', header: 'Capacity' },
+    { key: 'phone', header: 'Phone Number' },
+    { key: 'price', header: 'Total Amount' },
+    { key: 'occupancy', header: 'Occupancy' },
+    {
+      key: 'status',
+      header: 'Reservation',
+      type: 'badge',
+      badgeVariant: (status: string) => {
+        switch (status) {
+          case 'Available': return 'default';
+          case 'Occupied': return 'destructive';
+          case 'Maintenance': return 'secondary';
+          default: return 'outline';
+        }
+      }
+    }
+  ];
+
+  const actions = [
+    { key: 'book', label: 'Book Room' },
+    { key: 'maintenance', label: 'Schedule Maintenance' },
+    { key: 'details', label: 'View Details' }
+  ];
+
+  // Sample data - replace with your actual data
+  const sampleData = [
+    {
+      guestId: '16bh9489g',
+      name: 'Oyefeso Afolabi',
+      bookingId: 'BO202',
+      roomNo: '#401',
+      capacity: 2,
+      phone: '07057997839',
+      price: '$100',
+      occupancy: 'Single',
+      status: 'Available'
+    },
+    {
+      guestId: '16bh9489g',
+      name: 'John Doe',
+      bookingId: 'BO202',
+      roomNo: '#402',
+      capacity: 3,
+      phone: '08012345678',
+      price: '$150',
+      occupancy: 'Double',
+      status: 'Occupied'
+    },
+    {
+      guestId: '16bh9489g',
+      name: 'Jane Smith',
+      bookingId: 'BO202',
+      roomNo: '#403',
+      capacity: 4,
+      phone: '09098765432',
+      price: '$200',
+      occupancy: 'Suite',
+      status: 'Maintenance'
+    },
+    // Add more sample data as needed
+  ];
+
+  const handleRowAction = (
+    actionKey: string,
+    item: {
+      roomNumber: string;
+      type: string;
+      capacity: number;
+      price: string;
+      status: string;
+    },
+    index: number
+  ) => {
+    console.log(`Action: ${actionKey}`, item);
+    // Add your action handling logic here
+    switch (actionKey) {
+      case 'book':
+        console.log(`Booking room ${item.roomNumber}`);
+        break;
+      case 'maintenance':
+        console.log(`Scheduling maintenance for room ${item.roomNumber}`);
+        break;
+      case 'details':
+        console.log(`Viewing details for room ${item.roomNumber}`);
+        break;
+    }
+  };
+
 
   return (
     <MainLayout buttonText={""} buttonVisible={true} navigation={<PageHeader page='Rooms' icon={false} />}>
@@ -178,7 +263,17 @@ export default function Dashboard() {
             </TabsList>
           </div>
           <TabsContent value="list" >
-            <GuestDetailsCard guestData={guestData} />
+            <GuestDetailsCard>
+              <DynamicTable
+                columns={columns}
+                data={sampleData}
+                actions={actions}
+                onRowAction={handleRowAction}
+                itemsPerPage={10}
+                showCheckbox={true}
+                showActions={true}
+              />
+            </GuestDetailsCard>
           </TabsContent>
           <TabsContent value="calender" >
             <>

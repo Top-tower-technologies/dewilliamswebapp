@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import DashboardCard from "@/components/reusable/DashboardCard";
-import GuestTable from "@/components/reusable/GuestTable";
 import axiosInstance from "@/api/axiosInstance";
+import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
+import { DynamicTable } from "@/components/reusable/GuestTable";
 
 const page = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -20,7 +21,9 @@ const page = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axiosInstance.get("/staff/dashboard");
+        const response = await axiosInstance.get("/staff/dashboard",
+          { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } }
+        );
         console.log(response.data)
         setDashboardData(response.data);
       } catch (error) {
@@ -30,6 +33,74 @@ const page = () => {
 
     fetchDashboardData();
   }, []);
+
+  const columns = [
+    { key: 'id', header: 'Booking ID', cellClassName: 'font-medium' },
+    { key: 'name', header: 'Full Name', },
+    { key: 'number', header: 'Phone Number' },
+    { key: 'roomNo', header: 'Room No' },
+    { key: 'dateandtime', header: 'Issue date and time' },
+    { key: 'price', header: 'Total Amount' },
+    {
+      key: 'status',
+      header: 'Reservation',
+      type: 'badge',
+      badgeVariant: (status: string) => {
+        switch (status) {
+          case 'Available': return 'default';
+          case 'Occupied': return 'destructive';
+          case 'Maintenance': return 'secondary';
+          default: return 'outline';
+        }
+      }
+    }
+  ];
+
+  const actions = [
+    { key: 'book', label: 'Book Room' },
+    { key: 'maintenance', label: 'Schedule Maintenance' },
+    { key: 'details', label: 'View Details' }
+  ];
+
+  // Sample data - replace with your actual data
+  const sampleData = [
+    {
+      id: '16bh9489g',
+      name: 'Oyefeso Afolabi',
+      number: '07057997839',
+      roomNo: '#401',
+      dateandtime: '2023-10-01 12:00',
+      price: '$100',
+      status: 'Available'
+    },
+    {
+      id: '16bh9489g',
+      name: 'John Doe',
+      number: '08012345678',
+      roomNo: '#402',
+      dateandtime: '2023-10-02 14:30',
+      price: '$150',
+      status: 'Occupied'
+    },
+    {
+      id: '16bh9489g',
+      name: 'Jane Smith',
+      number: '09098765432',
+      roomNo: '#403',
+      dateandtime: '2023-10-03 09:15',
+      price: '$200',
+      status: 'Maintenance'
+    },
+    {
+      id: '16bh9489g',
+      name: 'Alice Johnson',
+      number: '07011223344',
+      roomNo: '#404',
+      dateandtime: '2023-10-04 11:45',
+      price: '$120',
+      status: 'Available'
+    }
+  ];
 
   return (
     <MainLayout buttonText={"Download data"}>
@@ -64,7 +135,50 @@ const page = () => {
         />
       </section>
 
-      <GuestTable />
+    <div className="p-6">
+      <GuestDetailsCard>
+
+        <DynamicTable
+          columns={columns} // TODO: Replace with actual column definitions
+          data={sampleData}    // TODO: Replace with actual data array
+          actions={actions} // TODO: Replace with actual actions if needed
+          showCheckbox={true}
+          itemsPerPage={10}
+          showActions={true}
+          onRowAction={(actionKey, item, index) => {
+            console.log(`Action: ${actionKey}`, item);
+            // Add your action handling logic here
+            switch (actionKey) {
+              case 'book':
+                console.log(`Booking room for ${item.name}`);
+                break;
+              case 'maintenance':
+                console.log(`Scheduling maintenance for ${item.roomNo}`);
+                break;
+              case 'details':
+                console.log(`Viewing details for ${item.name}`);
+                break;
+              default:
+                console.log(`Unknown action: ${actionKey}`);
+                break;
+            }
+          }
+          }
+          renderCell={(item, column) => {
+            if (column.key === 'status') {
+              return (
+                <span className={`badge ${item.status === 'Available' ? 'badge-success' : item.status === 'Occupied' ? 'badge-danger' : 'badge-secondary'}`}>
+                  {item.status}
+                </span>
+              );
+            }
+            return item[column.key];
+          }
+          }
+        />
+      </GuestDetailsCard>
+    </div>
+
     </MainLayout>
   );
 };

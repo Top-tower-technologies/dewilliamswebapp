@@ -1,218 +1,265 @@
+// ========================================
+// CORE DYNAMIC TABLE COMPONENT
+// ========================================
+
 "use client"
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
+import { PaginationButton } from "./PaginationButton";
 
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Filter, MoreVertical, SlidersHorizontal } from "lucide-react"
-import { FilterModal } from "./FilterModal"
+/**
+ * Core reusable table component with dynamic configuration
+ * @param {string} title - Table title
+ * @param {Array} columns - Column configuration array
+ * @param {Array} data - Table data array
+ * @param {Array} actions - Row action configuration
+ * @param {number} itemsPerPage - Items per page for pagination
+ * @param {boolean} showCheckbox - Show row selection checkboxes
+ * @param {boolean} showActions - Show action dropdown
+ * @param {Function} onRowAction - Callback for row actions
+ * @param {Function} renderCell - Custom cell renderer function
+ */
+type ColumnConfig = {
+  key: string;
+  header: string;
+  type?: string;
+  className?: string;
+  cellClassName?: string;
+  badgeVariant?: (value: any) => string;
+  badgeClassName?: (value: any) => string;
+};
 
-const dummyData = new Array(50).fill(null).map((_, i) => ({
-  guestId: `16bh9489g-${i + 1}`,
-  fullName: `Guest ${i + 1}`,
-  bookingId: `B00${i + 1}`,
-  room: `#${400 + i}`,
-  phone: `0705${Math.floor(1000000 + Math.random() * 9000000)}`,
-  amount: `₦${(150000 + i * 1000).toLocaleString()}`,
-  occupancy: `${1 + (i % 3)} Persons`,
-  status: ["Booked", "Checked-in", "Checked-Out"][i % 3],
-}))
+type ActionConfig = {
+  key: string;
+  label: string;
+};
 
-const perPage = 10
+type DynamicTableProps = {
+  title?: string;
+  columns: ColumnConfig[];
+  data: any[];
+  actions?: ActionConfig[];
+  itemsPerPage?: number;
+  showCheckbox?: boolean;
+  showActions?: boolean;
+  onRowAction?: (actionKey: string, item: any, index: number) => void;
+  renderCell?: (item: any, column: ColumnConfig) => React.ReactNode;
+};
 
-export default function GuestTable() {
-  const [search, setSearch] = useState("")
-  const [statusFilters, setStatusFilters] = useState<string[]>([])
-  const [dateFilter, setDateFilter] = useState("Today")
-  const [page, setPage] = useState(1)
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+export function DynamicTable({ 
+  title,
+  columns, 
+  data, 
+  actions = [],
+  itemsPerPage = 10,
+  showCheckbox = true,
+  showActions = true,
+  onRowAction,
+  renderCell
+}: DynamicTableProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedRows, setSelectedRows] = useState(new Set());
 
-  const handleToggleStatus = (status: string) => {
-    setStatusFilters((prev) =>
-      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
-    )
-  }
+  // ========================================
+  // PAGINATION LOGIC
+  // ========================================
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = data.slice(startIndex, endIndex);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value)
-    setPage(1)
-  }
+  // ========================================
+  // ROW SELECTION LOGIC
+  // ========================================
+  const toggleRowSelection = (index: number) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedRows(newSelected);
+  };
 
-  const filteredData = dummyData.filter((guest) => {
-    const matchesSearch =
-      guest.guestId.toLowerCase().includes(search.toLowerCase()) ||
-      guest.fullName.toLowerCase().includes(search.toLowerCase())
+  const toggleAllSelection = () => {
+    if (selectedRows.size === currentData.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(currentData.map((_, index) => index)));
+    }
+  };
 
-    const matchesStatus =
-      statusFilters.length === 0 || statusFilters.includes(guest.status)
+  // ========================================
+  // CELL RENDERING LOGIC
+  // ========================================
+  const defaultRenderCell = (item: any, column: ColumnConfig) => {
+    if (column.type === 'badge') {
+      const allowedVariants = ["outline", "default", "secondary", "destructive"] as const;
+      const variantValue = column.badgeVariant?.(item[column.key]);
+      const variant = allowedVariants.includes(variantValue as any) ? variantValue as typeof allowedVariants[number] : "outline";
+      const className = column.badgeClassName?.(item[column.key]) || "";
+      return (
+        <Badge variant={variant} className={className}>
+          {item[column.key]}
+        </Badge>
+      );
+    }
+    return item[column.key];
+  };
 
-    return matchesSearch && matchesStatus
-  })
+  const cellRenderer = renderCell || defaultRenderCell;
 
-  const totalPages = Math.ceil(filteredData.length / perPage)
-  const paginatedData = filteredData.slice((page - 1) * perPage, page * perPage)
-
-  return (
-    <div className="space-y-4 p-5">
-      {/* Filters */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-2 flex-wrap">
-          <Input
-            placeholder="Search by ID or name"
-            className="w-[200px]"
-            value={search}
-            onChange={handleSearchChange}
+  // ========================================
+  // PAGINATION BUTTONS GENERATION
+  // ========================================
+  const generatePaginationButtons = () => {
+    const buttons = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        buttons.push(
+          <PaginationButton
+            key={i}
+            number={i}
+            currentPage={currentPage}
+            onClick={() => setCurrentPage(i)}
           />
+        );
+      }
+    } else {
+      // Show first few pages, ellipsis, and last few pages
+      for (let i = 1; i <= Math.min(3, totalPages); i++) {
+        buttons.push(
+          <PaginationButton
+            key={i}
+            number={i}
+            currentPage={currentPage}
+            onClick={() => setCurrentPage(i)}
+          />
+        );
+      }
+      
+      if (totalPages > 6) {
+        buttons.push(<div key="ellipsis" className="px-2">...</div>);
+      }
+      
+      for (let i = Math.max(totalPages - 2, 4); i <= totalPages; i++) {
+        buttons.push(
+          <PaginationButton
+            key={i}
+            number={i}
+            currentPage={currentPage}
+            onClick={() => setCurrentPage(i)}
+          />
+        );
+      }
+    }
+    
+    return buttons;
+  };
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-[120px] justify-between">
-                {dateFilter} <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {["Today", "This Week", "This Month"].map((range) => (
-                <DropdownMenuItem key={range} onClick={() => setDateFilter(range)}>
-                  {range}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {["Checked-in", "Booked", "Checked-Out"].map((status) =>
-            statusFilters.includes(status) ? (
-              <Badge
-                key={status}
-                variant="outline"
-                className={`${
-                  status === "Checked-in"
-                    ? "bg-pink-100 text-pink-600"
-                    : status === "Booked"
-                    ? "bg-green-100 text-green-600"
-                    : "bg-gray-100 text-gray-600"
-                } cursor-pointer`}
-                onClick={() => handleToggleStatus(status)}
-              >
-                {status} ✕
-              </Badge>
-            ) : null
-          )}
-        </div>
-
-        {/* <Button
-          variant="outline"
-          onClick={() => {
-            setSearch("")
-            setStatusFilters([])
-            setDateFilter("Today")
-          }}
-        >
-          Clear Filters
-        </Button> */}
-        <Button onClick={() => {setIsFilterOpen(true)}} variant={"outline"}> <SlidersHorizontal /> Filter</Button>
-      </div>
-
-      {/* Table */}
+  // ========================================
+  // MAIN TABLE RENDER
+  // ========================================
+  return (
+    <div className="space-y-4">
+      {title && <h2 className="text-2xl font-bold">{title}</h2>}
+      
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Guest ID</TableHead>
-            <TableHead>Full Name</TableHead>
-            <TableHead>Booking ID</TableHead>
-            <TableHead>Room</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Occupancy</TableHead>
-            <TableHead>Reservation</TableHead>
-            <TableHead></TableHead>
+            {showCheckbox && (
+              <TableHead className="w-12">
+                <Checkbox 
+                  checked={selectedRows.size === currentData.length && currentData.length > 0}
+                  onCheckedChange={toggleAllSelection}
+                />
+              </TableHead>
+            )}
+            {columns.map((column, index) => (
+              <TableHead key={index} className={column.className}>
+                {column.header}
+              </TableHead>
+            ))}
+            {showActions && actions.length > 0 && (
+              <TableHead className="w-12"></TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedData.map((guest, index) => (
+          {currentData.map((item, index) => (
             <TableRow key={index}>
-              <TableCell className="text-blue-600 underline">{guest.guestId}</TableCell>
-              <TableCell>{guest.fullName}</TableCell>
-              <TableCell>{guest.bookingId}</TableCell>
-              <TableCell>{guest.room}</TableCell>
-              <TableCell>{guest.phone}</TableCell>
-              <TableCell>{guest.amount}</TableCell>
-              <TableCell>{guest.occupancy}</TableCell>
-              <TableCell>
-                <Badge
-                  className={`${
-                    guest.status === "Booked"
-                      ? "bg-green-100 text-green-600"
-                      : guest.status === "Checked-in"
-                      ? "bg-pink-100 text-pink-600"
-                      : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {guest.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Button size="icon" variant="ghost">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </TableCell>
+              {showCheckbox && (
+                <TableCell>
+                  <Checkbox 
+                    checked={selectedRows.has(index)}
+                    onCheckedChange={() => toggleRowSelection(index)}
+                  />
+                </TableCell>
+              )}
+              {columns.map((column, colIndex) => (
+                <TableCell key={colIndex} className={column.cellClassName}>
+                  {cellRenderer(item, column)}
+                </TableCell>
+              ))}
+              {showActions && actions.length > 0 && (
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {actions.map((action, actionIndex) => (
+                        <DropdownMenuItem 
+                          key={actionIndex}
+                          onClick={() => onRowAction?.(action.key, item, index)}
+                        >
+                          {action.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
       </Table>
 
-      {/* Pagination */}
-      <div className="flex justify-between items-center pt-4">
-        <p className="text-sm text-muted-foreground">
-          Page {page} of {totalPages}
-        </p>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            ← Previous
-          </Button>
-          {[...Array(totalPages).keys()]
-            .slice(Math.max(0, page - 2), page + 1)
-            .map((i) => (
-              <Button
-                key={i}
-                variant={page === i + 1 ? "default" : "outline"}
-                size="sm"
-                className={page === i + 1 ? "bg-yellow-200 text-black" : ""}
-                onClick={() => setPage(i + 1)}
-              >
-                {i + 1}
-              </Button>
-            ))}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
-            Next →
-          </Button>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(currentPage - 1)}
+            >
+              Previous
+            </Button>
+            {generatePaginationButtons()}
+            <Button 
+              variant="outline" 
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-      </div>
-
-      <FilterModal open={isFilterOpen} onClose={() => setIsFilterOpen(false)} />
+      )}
     </div>
-  )
+  );
 }

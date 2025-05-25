@@ -28,10 +28,12 @@ export default function LoginPage() {
       setToastMessage(response.data.message || "Login successful");
       setToastType("success");
       setShowToast(true);
+      localStorage.setItem('AuthKey', response.data.data.token);
     } catch (error: any) {
-      setToastMessage(error.data.message || "Login failed");
+      setToastMessage(error?.data?.message || "Login failed");
       setToastType("error");
       setShowToast(true);
+      console.log(error)
     } finally {
       setLoading(false);
     }
