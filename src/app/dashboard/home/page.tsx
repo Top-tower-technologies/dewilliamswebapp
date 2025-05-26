@@ -162,7 +162,7 @@ const page = () => {
 
         <DynamicTable
           columns={columns} // TODO: Replace with actual column definitions
-          data={sampleData}    // TODO: Replace with actual data array
+          data={[]}    // TODO: Replace with actual data array
           actions={actions} // TODO: Replace with actual actions if needed
           showCheckbox={true}
           itemsPerPage={10}

@@ -221,25 +221,25 @@ export default function Dashboard() {
           <StatCard
             title="Occupied Rooms"
             value={dashboardData.occupied_rooms.toString()}
-            change={15.2}
+            change={0}
             previousValue="from last week"
           />
           <StatCard
             title="Guest Satisfaction"
             value="32"
-            change={15.2}
+            change={0}
             previousValue="from last week"
           />
           <StatCard
             title="Available Rooms"
             value={dashboardData.available_rooms.toString()}
-            change={15.2}
+            change={0}
             previousValue="from last week"
           />
           <StatCard
             title="Cancelled Bookings"
             value={dashboardData.canceled_reservations.toString()}
-            change={15.2}
+            change={0}
             negative={true}
             previousValue="from last week"
           />
@@ -257,7 +257,7 @@ export default function Dashboard() {
             <GuestDetailsCard>
               <DynamicTable
                 columns={columns}
-                data={sampleData}
+                data={[]}
                 actions={actions}
                 onRowAction={handleRowAction}
                 itemsPerPage={10}
@@ -267,114 +267,7 @@ export default function Dashboard() {
             </GuestDetailsCard>
           </TabsContent>
           <TabsContent value="calender" >
-            <>
-              {/* Filter and Calendar */}
-              <div className="mb-6">
-                <div className="grid grid-cols-12 gap-2">
-                  {/* Filter button */}
-                  <div className="col-span-1">
-                    <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                      <SlidersHorizontal size={16} />
-                      <span>Filter</span>
-                    </Button>
-                  </div>
-
-                  {/* Days header */}
-                  {days.map((day, index) => (
-                    <div key={index} className="col-span-1">
-                      <div className="text-center font-medium">
-                        <div className="text-lg">{day.day}</div>
-                        <div className="text-sm text-gray-500">{day.weekday}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Room bookings by type */}
-              {Object.entries(roomsByType).map(([type, typeRooms]) => (
-                <div key={type} className="mb-6">
-                  {/* Suite type header */}
-                  <div className="font-medium text-lg mb-4">{type}</div>
-
-                  {/* Rooms of this type */}
-                  {typeRooms.map(room => (
-                    <div key={room.id} className="grid grid-cols-12 gap-2 mb-4">
-                      {/* Room number */}
-                      <div className="col-span-1 flex items-center">
-                        <div className="text-gray-700">ROOM {room.number}</div>
-                      </div>
-
-                      {/* Days cells */}
-                      {days.map((day, dayIndex) => {
-                        const bookingData = getBookingSpan(room.id, day.day);
-
-                        // If no booking or not the start day of a booking
-                        if (!bookingData || !bookingData.isStart) {
-                          return (
-                            <div key={dayIndex} className="col-span-1">
-                              {bookingData ? null : (
-                                <div className="bg-gray-100 p-4 rounded-md text-center">
-                                  Empty
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        // For bookings that start on this day
-                        const { booking, span } = bookingData;
-                        return (
-                          <div key={dayIndex} className={`col-span-${span} flex`}>
-                            <div className="bg-gray-100 p-4 rounded-md w-full">
-                              <div>{booking.code}</div>
-                              <div className="text-sm text-gray-500">
-                                {booking.nights > 1 ? `${booking.nights} Nights` : '1 Night'}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              ))}
-
-              {/* Pagination */}
-              <div className="flex justify-between items-center mt-8">
-                <div className="text-sm text-gray-500">Page 1 of 30</div>
-
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3].map(page => (
-                    <Button
-                      key={page}
-                      variant={page === 3 ? "default" : "ghost"}
-                      className={page === 3 ? "bg-blue-500 text-white" : ""}
-                      size="sm"
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                  <span>...</span>
-                  {[10, 11, 12].map(page => (
-                    <Button key={page} variant="ghost" size="sm">
-                      {page}
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" size="lg" className="flex items-center gap-2">
-                    <ChevronLeft size={16} />
-                    Previous
-                  </Button>
-                  <Button variant="default" size="lg" className="bg-black text-white flex items-center gap-2">
-                    Next
-                    <ChevronRight size={16} />
-                  </Button>
-                </div>
-              </div>
-            </>
+            
           </TabsContent>
         </Tabs>
       </div>
