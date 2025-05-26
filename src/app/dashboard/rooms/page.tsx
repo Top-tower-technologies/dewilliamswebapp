@@ -129,17 +129,14 @@ export default function Dashboard() {
   }, {} as Record<string, typeof rooms>);
 
   const columns = [
-    { key: 'guestId', header: 'Guest ID', cellClassName: 'font-medium' },
-    { key: 'name', header: 'Full Name', },
-    { key: 'bookingId', header: 'Booking ID', },
-    { key: 'roomNo', header: 'Room No' },
+    { key: 'roomNumber', header: 'Room Number', cellClassName: 'font-medium' },
+    { key: 'name', header: 'Room Name', },
+    { key: 'type', header: 'Room Type' },
     { key: 'capacity', header: 'Capacity' },
-    { key: 'phone', header: 'Phone Number' },
-    { key: 'price', header: 'Total Amount' },
-    { key: 'occupancy', header: 'Occupancy' },
+    { key: 'price', header: 'Price per Night' },
     {
       key: 'status',
-      header: 'Reservation',
+      header: 'Status',
       type: 'badge',
       badgeVariant: (status: string) => {
         switch (status) {
@@ -161,39 +158,33 @@ export default function Dashboard() {
   // Sample data - replace with your actual data
   const sampleData = [
     {
-      guestId: '16bh9489g',
-      name: 'Oyefeso Afolabi',
-      bookingId: 'BO202',
-      roomNo: '#401',
-      capacity: 2,
-      phone: '07057997839',
+      roomNumber: '101',
+      type: 'Single',
+      capacity: 1,
       price: '$100',
-      occupancy: 'Single',
       status: 'Available'
     },
     {
-      guestId: '16bh9489g',
-      name: 'John Doe',
-      bookingId: 'BO202',
-      roomNo: '#402',
-      capacity: 3,
-      phone: '08012345678',
+      roomNumber: '102',
+      type: 'Double',
+      capacity: 2,
       price: '$150',
-      occupancy: 'Double',
       status: 'Occupied'
     },
     {
-      guestId: '16bh9489g',
-      name: 'Jane Smith',
-      bookingId: 'BO202',
-      roomNo: '#403',
+      roomNumber: '103',
+      type: 'Suite',
       capacity: 4,
-      phone: '09098765432',
-      price: '$200',
-      occupancy: 'Suite',
+      price: '$300',
       status: 'Maintenance'
     },
-    // Add more sample data as needed
+    {
+      roomNumber: '104',
+      type: 'Double',
+      capacity: 2,
+      price: '$150',
+      status: 'Available'
+    }
   ];
 
   const handleRowAction = (

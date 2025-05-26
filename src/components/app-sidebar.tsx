@@ -56,7 +56,7 @@ const items = [
         icon: UserRound,
       },
       {
-        title: "Reservtion",
+        title: "Reservation",
         url: "/dashboard/reservation",
         icon: Mail,
       },

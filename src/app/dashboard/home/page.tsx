@@ -34,13 +34,14 @@ const page = () => {
     fetchDashboardData();
   }, []);
 
-  const columns = [
-    { key: 'id', header: 'Booking ID', cellClassName: 'font-medium' },
+ const columns = [
+    { key: 'guestId', header: 'Guest ID', cellClassName: 'font-medium' },
     { key: 'name', header: 'Full Name', },
-    { key: 'number', header: 'Phone Number' },
+    { key: 'bookingId', header: 'Booking ID', },
     { key: 'roomNo', header: 'Room No' },
-    { key: 'dateandtime', header: 'Issue date and time' },
+    { key: 'phone', header: 'Phone Number' },
     { key: 'price', header: 'Total Amount' },
+    { key: 'occupancy', header: 'Occupancy' },
     {
       key: 'status',
       header: 'Reservation',
@@ -65,42 +66,63 @@ const page = () => {
   // Sample data - replace with your actual data
   const sampleData = [
     {
-      id: '16bh9489g',
+      guestId: '16bh9489g',
       name: 'Oyefeso Afolabi',
-      number: '07057997839',
+      bookingId: 'BO202',
       roomNo: '#401',
-      dateandtime: '2023-10-01 12:00',
+      phone: '07057997839',
       price: '$100',
+      occupancy: 'Single',
       status: 'Available'
     },
     {
-      id: '16bh9489g',
+      guestId: '16bh9489g',
       name: 'John Doe',
-      number: '08012345678',
+      bookingId: 'BO202',
       roomNo: '#402',
-      dateandtime: '2023-10-02 14:30',
+      phone: '08012345678',
       price: '$150',
+      occupancy: 'Double',
       status: 'Occupied'
     },
     {
-      id: '16bh9489g',
+      guestId: '16bh9489g',
       name: 'Jane Smith',
-      number: '09098765432',
+      bookingId: 'BO202',
       roomNo: '#403',
-      dateandtime: '2023-10-03 09:15',
+      phone: '09098765432',
       price: '$200',
+      occupancy: 'Suite',
       status: 'Maintenance'
     },
-    {
-      id: '16bh9489g',
-      name: 'Alice Johnson',
-      number: '07011223344',
-      roomNo: '#404',
-      dateandtime: '2023-10-04 11:45',
-      price: '$120',
-      status: 'Available'
-    }
+    // Add more sample data as needed
   ];
+
+  const handleRowAction = (
+    actionKey: string,
+    item: {
+      roomNumber: string;
+      type: string;
+      capacity: number;
+      price: string;
+      status: string;
+    },
+    index: number
+  ) => {
+    console.log(`Action: ${actionKey}`, item);
+    // Add your action handling logic here
+    switch (actionKey) {
+      case 'book':
+        console.log(`Booking room ${item.roomNumber}`);
+        break;
+      case 'maintenance':
+        console.log(`Scheduling maintenance for room ${item.roomNumber}`);
+        break;
+      case 'details':
+        console.log(`Viewing details for room ${item.roomNumber}`);
+        break;
+    }
+  };
 
   return (
     <MainLayout buttonText={"Download data"}>

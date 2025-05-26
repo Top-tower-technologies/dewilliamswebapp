@@ -1,21 +1,67 @@
 // app/page.jsx
 'use client'
 
+import axiosInstance from "@/api/axiosInstance";
 import MainLayout from "@/components/layout/MainLayout";
 import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { DynamicTable } from "@/components/reusable/GuestTable";
 import { OccupancyTrendCard } from "@/components/reusable/OccupancyTrendCard";
 import PageHeader from "@/components/reusable/PageHeader";
 import { StatCard } from "@/components/reusable/StatCard";
+import { useEffect, useState } from "react";
 
 
 export default function Dashboard() {
+  const [guestTableData, setGuestTableData] = useState([]);
+  const [dashboardData, setDashboardData] = useState({
+    total_guest: 0,
+    currently_checkedout: 0,
+    currently_checkedin: 0,
+    current_guests: 0,
+  });
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await axiosInstance.get("/staff/guests/stats",
+          { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } }
+        );
+        console.log(response.data)
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+    fetchDashboardData();
+  }, []);
+
+  useEffect(() => {
+    const fetchTableData = async () => {
+      try {
+        const response = await axiosInstance.get("/staff/guests?page=1&limit=8", {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+        });
+        // Adjust this line based on your actual API response structure
+        const guests = (response.data || []).map((guest: any) => ({
+          ...guest,
+          id: guest.id ? guest.id.slice(0, 10) : guest.id,
+        }));
+        console.log("Fetched guests:", guests);
+        setGuestTableData(guests);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    fetchTableData();
+  }, []);
+
   const colums = [
     { key: 'id', header: 'ID', type: 'text', className: 'w-1/3' },
-    { key: 'name', header: 'Name', type: 'text', className: 'w-1/3' },
+    { key: 'first_name', header: 'First Name', type: 'text', className: 'w-1/3' },
+    { key: 'last_name', header: 'Last Name', type: 'text', className: 'w-1/3' },
     { key: 'phone', header: 'Phone', type: 'text', className: 'w-1/3' },
     { key: 'room', header: 'Room', type: 'text', className: 'w-1/4' },
-    { key: 'status', header: 'Status', type: 'badge', className: 'w-1/4' },
+    { key: 'current_activity_status', header: 'Status', type: 'badge', className: 'w-1/4' },
   ];
   const guestData = [
     { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Pending' },
@@ -33,27 +79,27 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
             title="Total Guests"
-            value="256"
-            change={15.2}
-            previousValue="from 6,532 (last week)"
+            value={dashboardData.total_guest}
+            change={0}
+            previousValue=""
           />
           <StatCard
             title="Currently Checked-In"
-            value="32"
-            change={15.2}
-            previousValue="from 6,532 (last week)"
+            value={dashboardData.currently_checkedin || 0}
+            change={0}
+            previousValue=""
           />
           <StatCard
             title="Checked-Out Today"
-            value="115"
-            change={15.2}
-            previousValue="from 6,532 (last week)"
+            value={dashboardData.currently_checkedout || 0}
+            change={0}
+            previousValue=""
           />
           <StatCard
             title="Checked-Out Today"
-            value="6,672"
-            change={15.2}
-            previousValue="from 6,532 (last week)"
+            value={dashboardData.current_guests || 0}
+            change={0}
+            previousValue=""
           />
         </div>
 
@@ -63,7 +109,7 @@ export default function Dashboard() {
 
               <DynamicTable
                 columns={colums}
-                data={guestData}
+                data={guestTableData}
                 actions={[
                   { key: 'book', label: 'Book Room' },
                   { key: 'maintenance', label: 'Schedule Maintenance' },
