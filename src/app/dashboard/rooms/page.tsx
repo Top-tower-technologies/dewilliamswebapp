@@ -27,6 +27,7 @@ export default function Dashboard() {
     occupied_apartments: 0,
     available_apartments: 0,
   });
+  const [rooms, setRooms] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -41,28 +42,23 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  // Sample data for room bookings
-  const rooms = [
-    { id: 'room-400', number: '400', type: 'Deluxe Suite' },
-    { id: 'room-401', number: '401', type: 'Deluxe Suite' },
-    { id: 'room-402', number: '402', type: 'Deluxe Suite' },
-    { id: 'room-200', number: '200', type: 'Supreme Suite' },
-    { id: 'room-201', number: '201', type: 'Supreme Suite' },
-  ];
+    useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await axiosInstance.get(`/staff/services/room_service/list/view`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` },
+          // params: { service_type: 'room_service' }
+        });
+        console.log(response.data)
+        setRooms(response.data.data);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
 
-  // Days of the week to display
-  const days = [
-    { day: 11, weekday: 'MON' },
-    { day: 12, weekday: 'MON' },
-    { day: 13, weekday: 'MON' },
-    { day: 14, weekday: 'MON' },
-    { day: 15, weekday: 'MON' },
-    { day: 16, weekday: 'MON' },
-    { day: 17, weekday: 'MON' },
-    { day: 11, weekday: 'MON' },
-    { day: 11, weekday: 'MON' },
-    { day: 11, weekday: 'MON' },
-  ];
+    fetchRooms();
+  }, []);
+
 
   // Sample bookings data
   const bookings: Record<string, { id: string; code: string; nights: number; startDay: number }[]> = {
@@ -129,11 +125,11 @@ export default function Dashboard() {
   }, {} as Record<string, typeof rooms>);
 
   const columns = [
-    { key: 'roomNumber', header: 'Room Number', cellClassName: 'font-medium' },
+    { key: 'service_number', header: 'Room Number', cellClassName: 'font-medium' },
     { key: 'name', header: 'Room Name', },
-    { key: 'type', header: 'Room Type' },
-    { key: 'capacity', header: 'Capacity' },
-    { key: 'price', header: 'Price per Night' },
+    { key: 'occupancy', header: 'Capacity' },
+    { key: 'early_NGN_price', header: 'Promotion' },
+    { key: 'standard_NGN_price', header: 'Standard Price' },
     {
       key: 'status',
       header: 'Status',
@@ -156,36 +152,7 @@ export default function Dashboard() {
   ];
 
   // Sample data - replace with your actual data
-  const sampleData = [
-    {
-      roomNumber: '101',
-      type: 'Single',
-      capacity: 1,
-      price: '$100',
-      status: 'Available'
-    },
-    {
-      roomNumber: '102',
-      type: 'Double',
-      capacity: 2,
-      price: '$150',
-      status: 'Occupied'
-    },
-    {
-      roomNumber: '103',
-      type: 'Suite',
-      capacity: 4,
-      price: '$300',
-      status: 'Maintenance'
-    },
-    {
-      roomNumber: '104',
-      type: 'Double',
-      capacity: 2,
-      price: '$150',
-      status: 'Available'
-    }
-  ];
+
 
   const handleRowAction = (
     actionKey: string,
@@ -257,7 +224,7 @@ export default function Dashboard() {
             <GuestDetailsCard>
               <DynamicTable
                 columns={columns}
-                data={[]}
+                data={rooms}
                 actions={actions}
                 onRowAction={handleRowAction}
                 itemsPerPage={10}
