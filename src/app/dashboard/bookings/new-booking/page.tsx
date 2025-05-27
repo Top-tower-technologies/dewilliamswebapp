@@ -58,7 +58,6 @@ const NewBookingPage = () => {
     });
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [paymentDetails, setPaymentDetails] = useState<any>({})
-    const samplePaymentLink = ""; // You can set this to a real payment link if needed
 
     const [bookingData, setBookingData] = useState<BookingData>({
         check_in: '',
@@ -553,20 +552,18 @@ const NewBookingPage = () => {
                 </div>
             </MainLayout>
 
-            <PaymentModal
-                open={paymentModalOpen}
-                onOpenChange={setPaymentModalOpen}
-                paymentLink={paymentDetails.payment_link}
-                email={paymentDetails?.guest.email || ""}
-                amount={paymentDetails?.total || 0}
-                guestName={paymentDetails?.guest.name || ""}
-                onPaymentComplete={() => {
-                    console.log("Payment marked as complete");
-                    // Add your payment completion logic here
-
-                    router.push('/dashboard/bookings')
-                }}
-            />
+<PaymentModal
+    open={paymentModalOpen}
+    onOpenChange={setPaymentModalOpen}
+    paymentLink={paymentDetails.payment_link}
+    email={paymentDetails?.guest?.email || ""}
+    amount={paymentDetails?.total || 0}
+    guestName={paymentDetails?.guest?.name || ""}
+    onPaymentComplete={() => {
+        console.log("Payment marked as complete");
+        router.push('/dashboard/bookings')
+    }}
+/>
         </div>
     )
 }
