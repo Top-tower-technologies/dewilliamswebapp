@@ -11,7 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { ChevronLeft, ChevronRight, List, SlidersHorizontal } from 'lucide-react';
+import { useRouter } from "next/navigation";
 import axiosInstance from "@/api/axiosInstance";
 import { DynamicTable } from "@/components/reusable/GuestTable";
 
@@ -28,6 +28,8 @@ export default function Dashboard() {
     available_apartments: 0,
   });
   const [rooms, setRooms] = useState<any[]>([]);
+  const router = useRouter();
+
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -147,8 +149,8 @@ export default function Dashboard() {
 
   const actions = [
     { key: 'book', label: 'Book Room' },
-    { key: 'maintenance', label: 'Schedule Maintenance' },
-    { key: 'details', label: 'View Details' }
+    // { key: 'maintenance', label: 'Schedule Maintenance' },
+    // { key: 'details', label: 'View Details' } 
   ];
 
   // Sample data - replace with your actual data
@@ -169,7 +171,7 @@ export default function Dashboard() {
     // Add your action handling logic here
     switch (actionKey) {
       case 'book':
-        console.log(`Booking room ${item.roomNumber}`);
+        router.push(`/dashboard/bookings/new-booking`);
         break;
       case 'maintenance':
         console.log(`Scheduling maintenance for room ${item.roomNumber}`);

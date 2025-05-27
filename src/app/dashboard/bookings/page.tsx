@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { DynamicTable } from '@/components/reusable/GuestTable'
 import { GuestDetailsCard } from '@/components/reusable/GuestDetailsCard'
 import axiosInstance from '@/api/axiosInstance'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { TriangleAlert, CheckCircle } from 'lucide-react'
 
 // Define types for better type safety
 interface ApiBookingData {
@@ -52,6 +55,12 @@ const page = () => {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  
+  // Modal states
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<TableData | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   const columns = [
     { key: 'id', header: 'Booking ID', cellClassName: 'font-medium' },
@@ -125,6 +134,57 @@ const page = () => {
     }
   };
 
+  // Confirm booking function
+  const confirmBooking = async (booking: TableData) => {
+    try {
+      setActionLoading(true);
+      const response = await axiosInstance.post(`/staff/bookings/${booking.id}/confirm`, {}, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      });
+      
+      if (response.data.success) {
+        console.log('Booking confirmed successfully');
+        // Refresh the data
+        await fetchReservations(currentPage);
+        setConfirmModalOpen(false);
+        setSelectedBooking(null);
+      } else {
+        throw new Error(response.data.message || 'Failed to confirm booking');
+      }
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+      setError('Failed to confirm booking. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Cancel booking function
+  const cancelBooking = async (booking: TableData) => {
+    try {
+      setActionLoading(true);
+      // Using the checkout endpoint as mentioned in your code
+      const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      });
+      
+      if (response.data.success) {
+        console.log('Booking cancelled successfully');
+        // Refresh the data
+        await fetchReservations(currentPage);
+        setCancelModalOpen(false);
+        setSelectedBooking(null);
+      } else {
+        throw new Error(response.data.message || 'Failed to cancel booking');
+      }
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      setError('Failed to cancel booking. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Fetch data on component mount
   useEffect(() => {
     fetchReservations(currentPage);
@@ -139,37 +199,26 @@ const page = () => {
   const handleRowAction = async (actionKey: string, item: TableData, index: number) => {
     console.log(`Action: ${actionKey}`, item);
     
-    try {
-      switch (actionKey) {
-        case 'confirm':
-          console.log(`Confirming booking for ${item.name}`);
-          // Add API call to confirm booking
-          // await confirmBooking(item.id);
-          // Refresh data after action
-          // await fetchReservations(currentPage);
-          break;
-          
-        case 'cancel':
-          console.log(`Cancelling booking for ${item.name}`);
-          // Add API call to cancel booking
-          // await cancelBooking(item.id);
-          // Refresh data after action
-          // await fetchReservations(currentPage);
-          break;
-          
-        case 'details':
-          console.log(`Viewing details for ${item.name}`);
-          // Navigate to details page
-          router.push(`/dashboard/bookings/${item.id}`);
-          break;
-          
-        default:
-          console.log(`Unknown action: ${actionKey}`);
-          break;
-      }
-    } catch (err) {
-      console.error(`Error executing action ${actionKey}:`, err);
-      // You might want to show a toast notification here
+    setSelectedBooking(item);
+    
+    switch (actionKey) {
+      case 'confirm':
+        setConfirmModalOpen(true);
+        break;
+        
+      case 'cancel':
+        setCancelModalOpen(true);
+        break;
+        
+      case 'details':
+        console.log(`Viewing details for ${item.name}`);
+        // Navigate to details page
+        router.push(`/dashboard/bookings/${item.id}`);
+        break;
+        
+      default:
+        console.log(`Unknown action: ${actionKey}`);
+        break;
     }
   };
 
@@ -241,7 +290,6 @@ const page = () => {
     <MainLayout navigation={<p className='text-[20px] font-[400]'>Booking</p>} buttonText={"New Booking"} handleClick={() => router.push("/dashboard/bookings/new-booking")}>
       <div className='p-4'>
         <GuestDetailsCard>
-
           <DynamicTable
             columns={columns}
             data={bookingData}
@@ -278,6 +326,67 @@ const page = () => {
             </div>
           )}
         </GuestDetailsCard>
+
+        {/* Cancel Booking Modal */}
+        <Dialog open={cancelModalOpen} onOpenChange={() => setCancelModalOpen(false)}>
+          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
+            <div className="p-8 bg-[#FFF1F2] rounded-full grid place-items-start">
+              <TriangleAlert size={100} className="text-[#ED1522]" />
+            </div>
+            <DialogTitle className="text-2xl">Cancel Booking?</DialogTitle>
+            <DialogDescription className="text-center text-md">
+              Are you sure you want to cancel the booking for <strong>{selectedBooking?.name}</strong>? 
+              This action cannot be reversed.
+            </DialogDescription>
+
+            <div className="grid space-y-2">
+              <Button 
+                variant="destructive" 
+                onClick={() => selectedBooking && cancelBooking(selectedBooking)}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Cancelling...' : 'Yes, Cancel Booking'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={() => setCancelModalOpen(false)}
+                disabled={actionLoading}
+              >
+                No, Go back
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Booking Modal */}
+        <Dialog open={confirmModalOpen} onOpenChange={() => setConfirmModalOpen(false)}>
+          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
+            <div className="p-8 bg-[#F0F9FF] rounded-full grid place-items-start">
+              <CheckCircle size={100} className="text-[#0369A1]" />
+            </div>
+            <DialogTitle className="text-2xl">Confirm Booking?</DialogTitle>
+            <DialogDescription className="text-center text-md">
+              Are you sure you want to confirm the booking for <strong>{selectedBooking?.name}</strong>? 
+              Room {selectedBooking?.roomNo} will be reserved.
+            </DialogDescription>
+
+            <div className="grid space-y-2">
+              <Button 
+                onClick={() => selectedBooking && confirmBooking(selectedBooking)}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Confirming...' : 'Yes, Confirm Booking'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={() => setConfirmModalOpen(false)}
+                disabled={actionLoading}
+              >
+                No, Go back
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   )
