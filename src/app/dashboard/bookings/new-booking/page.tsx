@@ -47,7 +47,6 @@ interface ToastState {
 
 const NewBookingPage = () => {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [rooms, setRooms] = useState<Room[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -73,8 +72,6 @@ const NewBookingPage = () => {
         reservation_source: 'walk_in',
         address: '',
     });
-
-    const payNow = searchParams.get('pay_now') === 'true';
 
     // Toast helper function
     const showToast = (message: string, type: "success" | "error" | "info" | "warning" = "success") => {
@@ -176,7 +173,8 @@ const NewBookingPage = () => {
 
         } catch (error: any) {
             console.error("Error creating booking:", error);
-            showToast(error.response?.data?.message || "Failed to create booking.", "error");
+            showToast(error.response?.data?.message || "Failed to create booking.",
+                 "error");
         } finally {
             setLoading(false);
         }
@@ -544,8 +542,6 @@ const NewBookingPage = () => {
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                         Creating Booking...
                                     </div>
-                                ) : payNow ? (
-                                    "Create & Pay for Room"
                                 ) : (
                                     "Create Booking"
                                 )}
