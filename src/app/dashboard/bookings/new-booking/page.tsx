@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axiosInstance from '@/api/axiosInstance';
 import Toast from '@/components/reusable/Toast';
+import { PaymentModal } from '@/components/reusable/PaymentModal';
 
 interface Room {
     id: string;
@@ -55,7 +56,10 @@ const NewBookingPage = () => {
         message: "",
         type: "success"
     });
-    
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [paymentDetails, setPaymentDetails] = useState<any>({})
+    const samplePaymentLink = ""; // You can set this to a real payment link if needed
+
     const [bookingData, setBookingData] = useState<BookingData>({
         check_in: '',
         check_out: '',
@@ -163,18 +167,16 @@ const NewBookingPage = () => {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
                 }
             );
+            setPaymentModalOpen(true)
             showToast("Booking created successfully!", "success");
-            console.log("Booking response:", response.data);
-            
-            // Optional: Redirect after successful booking
-            // setTimeout(() => {
-            //     router.push('/dashboard/bookings');
-            // }, 2000);
+            //this is what i changed
+            setPaymentDetails(response.data.data)
+            console.log("Booking response:", response.data.data);
+
 
         } catch (error: any) {
             console.error("Error creating booking:", error);
-            showToast(error.response?.data?.message || "Failed to create booking.",
-                 "error");
+            showToast(error.response?.data?.message || "Failed to create booking.", "error");
         } finally {
             setLoading(false);
         }
@@ -205,7 +207,7 @@ const NewBookingPage = () => {
                 message={toast.message}
                 type={toast.type}
             />
-            
+
             <MainLayout
                 navigation={
                     <div className='flex justify-center gap-x-3 items-center backdrop-blur-sm bg-white/70 rounded-full px-6 py-2 shadow-sm border'>
@@ -550,6 +552,21 @@ const NewBookingPage = () => {
                     </Card>
                 </div>
             </MainLayout>
+
+            <PaymentModal
+                open={paymentModalOpen}
+                onOpenChange={setPaymentModalOpen}
+                paymentLink={paymentDetails.payment_link}
+                email={paymentDetails?.guest.email || ""}
+                amount={paymentDetails?.total || 0}
+                guestName={paymentDetails?.guest.name || ""}
+                onPaymentComplete={() => {
+                    console.log("Payment marked as complete");
+                    // Add your payment completion logic here
+
+                    router.push('/dashboard/bookings')
+                }}
+            />
         </div>
     )
 }
