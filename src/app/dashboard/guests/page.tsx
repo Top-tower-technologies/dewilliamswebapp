@@ -63,15 +63,6 @@ export default function Dashboard() {
     { key: 'room', header: 'Room', type: 'text', className: 'w-1/4' },
     { key: 'current_activity_status', header: 'Status', type: 'badge', className: 'w-1/4' },
   ];
-  const guestData = [
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Pending' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '#16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Pending' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-    { id: '16bh9489g', name: 'Oyefeso Afolabi', phone: '07057997839', room: '#401', status: 'Checked in' },
-  ];
 
   return (
     <MainLayout buttonText={""} buttonVisible={true} navigation={<PageHeader page='Guests' icon={false} />}>

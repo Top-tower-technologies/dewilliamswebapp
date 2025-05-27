@@ -38,11 +38,11 @@ const page = () => {
    useEffect(() => {
     const fetchTableData = async () => {
       try {
-        const response = await axiosInstance.get("/staff/guests?page=1&limit=8", {
+        const response = await axiosInstance.get("/staff/reservations?page=1&limit=8", {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
         });
         // Adjust this line based on your actual API response structure
-        const guests = (response.data || []).map((guest: any) => ({
+        const guests = (response.data.data.data || []).map((guest: any) => ({
           ...guest,
           id: guest.id ? guest.id.slice(0, 10) : guest.id,
         }));
@@ -57,16 +57,16 @@ const page = () => {
   }, []);
 
  const columns = [
-    { key: 'guestId', header: 'Guest ID', cellClassName: 'font-medium' },
-    { key: 'first_name', header: 'First Name', },
-    { key: 'last_name', header: 'Last Name', },
-    { key: 'room', header: 'Room' },
+    { key: 'guest_id', header: 'Guest ID', cellClassName: 'font-medium' },
+    { key: 'full_name', header: 'First Name', },
+    { key: 'booking_id', header: 'Booking ID', },
+    { key: 'service_no', header: 'Service No' },
     { key: 'phone', header: 'Phone Number' },
-    { key: 'price', header: 'Total Amount' },
+    { key: 'total_amount', header: 'Total Amount' },
     { key: 'occupancy', header: 'Occupancy' },
     {
-      key: 'current_activity_status',
-      header: 'Reservation',
+      key: 'status',
+      header: 'status',
       type: 'badge',
       badgeVariant: (status: string) => {
         switch (status) {
