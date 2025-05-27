@@ -189,26 +189,26 @@ export default function Dashboard() {
             title="Occupied Rooms"
             value={dashboardData.occupied_rooms.toString()}
             change={0}
-            previousValue="from last week"
+            previousValue=" "
           />
           <StatCard
             title="Guest Satisfaction"
             value="32"
             change={0}
-            previousValue="from last week"
+            previousValue=" "
           />
           <StatCard
             title="Available Rooms"
             value={dashboardData.available_rooms.toString()}
             change={0}
-            previousValue="from last week"
+            previousValue=" "
           />
           <StatCard
             title="Cancelled Bookings"
             value={dashboardData.canceled_reservations.toString()}
             change={0}
             negative={true}
-            previousValue="from last week"
+            previousValue=" "
           />
         </div>
 
