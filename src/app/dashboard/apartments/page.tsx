@@ -1,21 +1,24 @@
 // app/page.jsx
 'use client'
 
+import axiosInstance from "@/api/axiosInstance";
 import MainLayout from "@/components/layout/MainLayout";
 import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { DynamicTable } from "@/components/reusable/GuestTable";
 import { OccupancyTrendCard } from "@/components/reusable/OccupancyTrendCard";
 import PageHeader from "@/components/reusable/PageHeader";
 import { StatCard } from "@/components/reusable/StatCard";
+import { useEffect, useState } from "react";
 
 
 export default function Dashboard() {
+  const [rooms, setRooms] = useState<any[]>([]);
   const columns = [
-    { key: 'roomNumber', header: 'Apartment Number', cellClassName: 'font-medium' },
+    { key: 'service_number', header: 'Apartment Number', cellClassName: 'font-medium' },
     { key: 'name', header: 'Apartment Name', },
-    { key: 'type', header: 'Apartment Type' },
-    { key: 'capacity', header: 'Capacity' },
-    { key: 'price', header: 'Price per Night' },
+    { key: 'occupancy', header: 'Capacity' },
+    { key: 'early_NGN_price', header: 'Promotion' },
+    { key: 'standard_NGN_price', header: 'Standard Price' },
     {
       key: 'status',
       header: 'Status',
@@ -31,37 +34,29 @@ export default function Dashboard() {
     }
   ];
 
-  const handleRowAction = (
-    actionKey: string,
-    item: {
-      roomNumber: string;
-      type: string;
-      capacity: number;
-      price: string;
-      status: string;
-    },
-    index: number
-  ) => {
-    console.log(`Action: ${actionKey}`, item);
-    // Add your action handling logic here
-    switch (actionKey) {
-      case 'book':
-        console.log(`Booking room ${item.roomNumber}`);
-        break;
-      case 'maintenance':
-        console.log(`Scheduling maintenance for room ${item.roomNumber}`);
-        break;
-      case 'details':
-        console.log(`Viewing details for room ${item.roomNumber}`);
-        break;
-    }
-  };
-
   const actions = [
     { key: 'book', label: 'Book Room' },
     { key: 'maintenance', label: 'Schedule Maintenance' },
     { key: 'details', label: 'View Details' }
   ];
+
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await axiosInstance.get(`/staff/services/apartment_service/list/view`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` },
+          // params: { service_type: 'room_service' }
+        });
+        console.log(response.data)
+        setRooms(response.data.data);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    fetchRooms();
+  }, []);
 
   return (
     <MainLayout buttonText={""} buttonVisible={true} navigation={<PageHeader page='Apartments' icon={false} />}>
@@ -98,9 +93,8 @@ export default function Dashboard() {
           <GuestDetailsCard>
             <DynamicTable
               columns={columns}
-              data={[]}
+              data={rooms}
               actions={actions}
-              onRowAction={handleRowAction}
               itemsPerPage={10}
               showCheckbox={true}
               showActions={true}

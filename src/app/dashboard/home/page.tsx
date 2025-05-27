@@ -7,6 +7,7 @@ import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { DynamicTable } from "@/components/reusable/GuestTable";
 
 const page = () => {
+  const [tableData, setTableData] = useState([]);
   const [dashboardData, setDashboardData] = useState({
     total_reservations: 0,
     pending_reservations: 0,
@@ -34,16 +35,37 @@ const page = () => {
     fetchDashboardData();
   }, []);
 
+   useEffect(() => {
+    const fetchTableData = async () => {
+      try {
+        const response = await axiosInstance.get("/staff/guests?page=1&limit=8", {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+        });
+        // Adjust this line based on your actual API response structure
+        const guests = (response.data || []).map((guest: any) => ({
+          ...guest,
+          id: guest.id ? guest.id.slice(0, 10) : guest.id,
+        }));
+        console.log("Fetched guests:", guests);
+        setTableData(guests);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    fetchTableData();
+  }, []);
+
  const columns = [
     { key: 'guestId', header: 'Guest ID', cellClassName: 'font-medium' },
-    { key: 'name', header: 'Full Name', },
-    { key: 'bookingId', header: 'Booking ID', },
-    { key: 'roomNo', header: 'Room No' },
+    { key: 'first_name', header: 'First Name', },
+    { key: 'last_name', header: 'Last Name', },
+    { key: 'room', header: 'Room' },
     { key: 'phone', header: 'Phone Number' },
     { key: 'price', header: 'Total Amount' },
     { key: 'occupancy', header: 'Occupancy' },
     {
-      key: 'status',
+      key: 'current_activity_status',
       header: 'Reservation',
       type: 'badge',
       badgeVariant: (status: string) => {
@@ -61,41 +83,6 @@ const page = () => {
     { key: 'book', label: 'Book Room' },
     { key: 'maintenance', label: 'Schedule Maintenance' },
     { key: 'details', label: 'View Details' }
-  ];
-
-  // Sample data - replace with your actual data
-  const sampleData = [
-    {
-      guestId: '16bh9489g',
-      name: 'Oyefeso Afolabi',
-      bookingId: 'BO202',
-      roomNo: '#401',
-      phone: '07057997839',
-      price: '$100',
-      occupancy: 'Single',
-      status: 'Available'
-    },
-    {
-      guestId: '16bh9489g',
-      name: 'John Doe',
-      bookingId: 'BO202',
-      roomNo: '#402',
-      phone: '08012345678',
-      price: '$150',
-      occupancy: 'Double',
-      status: 'Occupied'
-    },
-    {
-      guestId: '16bh9489g',
-      name: 'Jane Smith',
-      bookingId: 'BO202',
-      roomNo: '#403',
-      phone: '09098765432',
-      price: '$200',
-      occupancy: 'Suite',
-      status: 'Maintenance'
-    },
-    // Add more sample data as needed
   ];
 
   const handleRowAction = (
@@ -162,7 +149,7 @@ const page = () => {
 
         <DynamicTable
           columns={columns} // TODO: Replace with actual column definitions
-          data={[]}    // TODO: Replace with actual data array
+          data={tableData}    // TODO: Replace with actual data array
           actions={actions} // TODO: Replace with actual actions if needed
           showCheckbox={true}
           itemsPerPage={10}
