@@ -15,7 +15,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     // Add any other cleanup here (clear cookies, etc.)
     
     // Redirect to login page
-    router.push('/login');
+    router.push('/');
   }, [router]);
 
   const resetTimer = useCallback(() => {
