@@ -79,38 +79,6 @@ const page = () => {
     }
   ];
 
-  const actions = [
-    { key: 'book', label: 'Book Room' },
-    { key: 'maintenance', label: 'Schedule Maintenance' },
-    { key: 'details', label: 'View Details' }
-  ];
-
-  const handleRowAction = (
-    actionKey: string,
-    item: {
-      roomNumber: string;
-      type: string;
-      capacity: number;
-      price: string;
-      status: string;
-    },
-    index: number
-  ) => {
-    console.log(`Action: ${actionKey}`, item);
-    // Add your action handling logic here
-    switch (actionKey) {
-      case 'book':
-        console.log(`Booking room ${item.roomNumber}`);
-        break;
-      case 'maintenance':
-        console.log(`Scheduling maintenance for room ${item.roomNumber}`);
-        break;
-      case 'details':
-        console.log(`Viewing details for room ${item.roomNumber}`);
-        break;
-    }
-  };
-
   return (
     <MainLayout buttonText={"Download data"}>
       <section className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
@@ -150,40 +118,8 @@ const page = () => {
         <DynamicTable
           columns={columns} // TODO: Replace with actual column definitions
           data={tableData}    // TODO: Replace with actual data array
-          actions={actions} // TODO: Replace with actual actions if needed
           showCheckbox={true}
           itemsPerPage={10}
-          showActions={true}
-          onRowAction={(actionKey, item, index) => {
-            console.log(`Action: ${actionKey}`, item);
-            // Add your action handling logic here
-            switch (actionKey) {
-              case 'book':
-                console.log(`Booking room for ${item.name}`);
-                break;
-              case 'maintenance':
-                console.log(`Scheduling maintenance for ${item.roomNo}`);
-                break;
-              case 'details':
-                console.log(`Viewing details for ${item.name}`);
-                break;
-              default:
-                console.log(`Unknown action: ${actionKey}`);
-                break;
-            }
-          }
-          }
-          renderCell={(item, column) => {
-            if (column.key === 'status') {
-              return (
-                <span className={`badge ${item.status === 'Available' ? 'badge-success' : item.status === 'Occupied' ? 'badge-danger' : 'badge-secondary'}`}>
-                  {item.status}
-                </span>
-              );
-            }
-            return item[column.key];
-          }
-          }
         />
       </GuestDetailsCard>
     </div>

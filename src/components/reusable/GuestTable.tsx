@@ -17,7 +17,7 @@ import { PaginationButton } from "./PaginationButton";
  * @param {string} title - Table title
  * @param {Array} columns - Column configuration array
  * @param {Array} data - Table data array
- * @param {Array} actions - Row action configuration
+ * @param {Array|Function} actions - Row action configuration (array) or function that returns actions for each row
  * @param {number} itemsPerPage - Items per page for pagination
  * @param {boolean} showCheckbox - Show row selection checkboxes
  * @param {boolean} showActions - Show action dropdown
@@ -37,13 +37,15 @@ type ColumnConfig = {
 type ActionConfig = {
   key: string;
   label: string;
+  icon?: React.ReactNode;
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary';
 };
 
 type DynamicTableProps = {
   title?: string;
   columns: ColumnConfig[];
   data: any[];
-  actions?: ActionConfig[];
+  actions?: ActionConfig[] | ((item: any) => ActionConfig[]);
   itemsPerPage?: number;
   showCheckbox?: boolean;
   showActions?: boolean;
@@ -92,6 +94,16 @@ export function DynamicTable({
     } else {
       setSelectedRows(new Set(currentData.map((_, index) => index)));
     }
+  };
+
+  // ========================================
+  // ACTION RESOLUTION LOGIC
+  // ========================================
+  const getActionsForRow = (item: any): ActionConfig[] => {
+    if (typeof actions === 'function') {
+      return actions(item);
+    }
+    return Array.isArray(actions) ? actions : [];
   };
 
   // ========================================
@@ -187,50 +199,56 @@ export function DynamicTable({
                 {column.header}
               </TableHead>
             ))}
-            {showActions && actions.length > 0 && (
+            {showActions && (
               <TableHead className="w-12"></TableHead>
             )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {currentData.map((item, index) => (
-            <TableRow key={index}>
-              {showCheckbox && (
-                <TableCell>
-                  <Checkbox 
-                    checked={selectedRows.has(index)}
-                    onCheckedChange={() => toggleRowSelection(index)}
-                  />
-                </TableCell>
-              )}
-              {columns.map((column, colIndex) => (
-                <TableCell key={colIndex} className={column.cellClassName}>
-                  {cellRenderer(item, column)}
-                </TableCell>
-              ))}
-              {showActions && actions.length > 0 && (
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {actions.map((action, actionIndex) => (
-                        <DropdownMenuItem 
-                          key={actionIndex}
-                          onClick={() => onRowAction?.(action.key, item, index)}
-                        >
-                          {action.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              )}
-            </TableRow>
-          ))}
+          {currentData.map((item, index) => {
+            const rowActions = getActionsForRow(item);
+            
+            return (
+              <TableRow key={index}>
+                {showCheckbox && (
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedRows.has(index)}
+                      onCheckedChange={() => toggleRowSelection(index)}
+                    />
+                  </TableCell>
+                )}
+                {columns.map((column, colIndex) => (
+                  <TableCell key={colIndex} className={column.cellClassName}>
+                    {cellRenderer(item, column)}
+                  </TableCell>
+                ))}
+                {showActions && rowActions.length > 0 && (
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {rowActions.map((action, actionIndex) => (
+                          <DropdownMenuItem 
+                            key={actionIndex}
+                            onClick={() => onRowAction?.(action.key, item, index)}
+                            className="flex items-center gap-2"
+                          >
+                            {action.icon && action.icon}
+                            {action.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                )}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
 

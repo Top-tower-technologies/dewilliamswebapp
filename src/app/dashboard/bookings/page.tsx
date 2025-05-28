@@ -7,7 +7,7 @@ import { GuestDetailsCard } from '@/components/reusable/GuestDetailsCard'
 import axiosInstance from '@/api/axiosInstance'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { TriangleAlert, CheckCircle } from 'lucide-react'
+import { TriangleAlert, CheckCircle, User, LogIn, LogOut, CreditCard, Clock, X } from 'lucide-react'
 
 // Define types for better type safety
 interface ApiBookingData {
@@ -48,6 +48,13 @@ interface TableData {
   occupancy: number;
 }
 
+interface ActionItem {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary';
+}
+
 const page = () => {
   const router = useRouter()
   const [bookingData, setBookingData] = useState<TableData[]>([])
@@ -59,6 +66,8 @@ const page = () => {
   // Modal states
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [checkinModalOpen, setCheckinModalOpen] = useState(false)
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<TableData | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
@@ -79,17 +88,60 @@ const page = () => {
           case 'initiated': return 'secondary';
           case 'cancelled': return 'destructive';
           case 'completed': return 'outline';
+          case 'deposited': return 'secondary';
+          case 'expired': return 'destructive';
+          case 'checked_in': return 'default';
+          case 'checked_out': return 'outline';
           default: return 'outline';
         }
       }
     }
   ];
 
-  const actions = [
-    { key: 'confirm', label: 'Confirm Booking' },
-    { key: 'cancel', label: 'Cancel Booking' },
-    { key: 'details', label: 'View Details' }
-  ];
+  // Dynamic actions based on status
+  const getActionsForStatus = (status: string): ActionItem[] => {
+    const normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'initiated':
+        return [
+          { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
+          { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
+          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
+        ];
+      
+      case 'confirmed':
+        return [
+          { key: 'checkin', label: 'Check In', icon: <LogIn size={16} />, variant: 'default' },
+          { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
+          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
+        ];
+      
+      case 'deposited':
+        return [
+          { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
+          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
+        ];
+      
+      case 'checked_in':
+        return [
+          { key: 'checkout', label: 'Check Out', icon: <LogOut size={16} />, variant: 'default' },
+          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
+        ];
+      
+      case 'cancelled':
+      case 'expired':
+      case 'checked_out':
+        return [
+          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
+        ];
+      
+      default:
+        return [
+          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
+        ];
+    }
+  };
 
   // Transform API data to match table structure
   const transformApiData = (apiData: ApiBookingData[]): TableData[] => {
@@ -134,7 +186,7 @@ const page = () => {
     }
   };
 
-  // Confirm booking function
+  // Action Functions
   const confirmBooking = async (booking: TableData) => {
     try {
       setActionLoading(true);
@@ -144,7 +196,6 @@ const page = () => {
       
       if (response.data.success) {
         console.log('Booking confirmed successfully');
-        // Refresh the data
         await fetchReservations(currentPage);
         setConfirmModalOpen(false);
         setSelectedBooking(null);
@@ -159,18 +210,15 @@ const page = () => {
     }
   };
 
-  // Cancel booking function
   const cancelBooking = async (booking: TableData) => {
     try {
       setActionLoading(true);
-      // Using the checkout endpoint as mentioned in your code
       const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
       
       if (response.data.success) {
         console.log('Booking cancelled successfully');
-        // Refresh the data
         await fetchReservations(currentPage);
         setCancelModalOpen(false);
         setSelectedBooking(null);
@@ -180,6 +228,55 @@ const page = () => {
     } catch (error) {
       console.error('Error cancelling booking:', error);
       setError('Failed to cancel booking. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // TODO: Implement these functions based on your API endpoints
+  const checkinGuest = async (booking: TableData) => {
+    try {
+      setActionLoading(true);
+      // Replace with your actual check-in API endpoint
+      const response = await axiosInstance.post(`/staff/bookings/${booking.id}/checkin`, {}, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      });
+      
+      if (response.data.success) {
+        console.log('Guest checked in successfully');
+        await fetchReservations(currentPage);
+        setCheckinModalOpen(false);
+        setSelectedBooking(null);
+      } else {
+        throw new Error(response.data.message || 'Failed to check in guest');
+      }
+    } catch (error) {
+      console.error('Error checking in guest:', error);
+      setError('Failed to check in guest. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const checkoutGuest = async (booking: TableData) => {
+    try {
+      setActionLoading(true);
+      // Replace with your actual check-out API endpoint
+      const response = await axiosInstance.post(`/staff/bookings/${booking.id}/checkout`, {}, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      });
+      
+      if (response.data.success) {
+        console.log('Guest checked out successfully');
+        await fetchReservations(currentPage);
+        setCheckoutModalOpen(false);
+        setSelectedBooking(null);
+      } else {
+        throw new Error(response.data.message || 'Failed to check out guest');
+      }
+    } catch (error) {
+      console.error('Error checking out guest:', error);
+      setError('Failed to check out guest. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -209,10 +306,17 @@ const page = () => {
       case 'cancel':
         setCancelModalOpen(true);
         break;
+
+      case 'checkin':
+        setCheckinModalOpen(true);
+        break;
+
+      case 'checkout':
+        setCheckoutModalOpen(true);
+        break;
         
       case 'details':
         console.log(`Viewing details for ${item.name}`);
-        // Navigate to details page
         router.push(`/dashboard/bookings/${item.id}`);
         break;
         
@@ -231,13 +335,17 @@ const page = () => {
           case 'initiated': return 'bg-yellow-100 text-yellow-800';
           case 'cancelled': return 'bg-red-100 text-red-800';
           case 'completed': return 'bg-blue-100 text-blue-800';
+          case 'deposited': return 'bg-purple-100 text-purple-800';
+          case 'expired': return 'bg-gray-100 text-gray-800';
+          case 'checked_in': return 'bg-blue-100 text-blue-800';
+          case 'checked_out': return 'bg-gray-100 text-gray-800';
           default: return 'bg-gray-100 text-gray-800';
         }
       };
 
       return (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+          {item.status.charAt(0).toUpperCase() + item.status.slice(1).replace('_', ' ')}
         </span>
       );
     }
@@ -293,7 +401,7 @@ const page = () => {
           <DynamicTable
             columns={columns}
             data={bookingData}
-            actions={actions}
+            actions={(row: TableData) => getActionsForStatus(row.status)}
             itemsPerPage={10}
             showCheckbox={true}
             showActions={true}
@@ -380,6 +488,64 @@ const page = () => {
               <Button 
                 variant="ghost" 
                 onClick={() => setConfirmModalOpen(false)}
+                disabled={actionLoading}
+              >
+                No, Go back
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Check In Modal */}
+        <Dialog open={checkinModalOpen} onOpenChange={() => setCheckinModalOpen(false)}>
+          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
+            <div className="p-8 bg-[#F0FDF4] rounded-full grid place-items-start">
+              <LogIn size={100} className="text-[#15803D]" />
+            </div>
+            <DialogTitle className="text-2xl">Check In Guest?</DialogTitle>
+            <DialogDescription className="text-center text-md">
+              Are you sure you want to check in <strong>{selectedBooking?.name}</strong> to room {selectedBooking?.roomNo}?
+            </DialogDescription>
+
+            <div className="grid space-y-2">
+              <Button 
+                onClick={() => selectedBooking && checkinGuest(selectedBooking)}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Checking In...' : 'Yes, Check In'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={() => setCheckinModalOpen(false)}
+                disabled={actionLoading}
+              >
+                No, Go back
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Check Out Modal */}
+        <Dialog open={checkoutModalOpen} onOpenChange={() => setCheckoutModalOpen(false)}>
+          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
+            <div className="p-8 bg-[#FEF3C7] rounded-full grid place-items-start">
+              <LogOut size={100} className="text-[#D97706]" />
+            </div>
+            <DialogTitle className="text-2xl">Check Out Guest?</DialogTitle>
+            <DialogDescription className="text-center text-md">
+              Are you sure you want to check out <strong>{selectedBooking?.name}</strong> from room {selectedBooking?.roomNo}?
+            </DialogDescription>
+
+            <div className="grid space-y-2">
+              <Button 
+                onClick={() => selectedBooking && checkoutGuest(selectedBooking)}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Checking Out...' : 'Yes, Check Out'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={() => setCheckoutModalOpen(false)}
                 disabled={actionLoading}
               >
                 No, Go back
