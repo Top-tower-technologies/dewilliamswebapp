@@ -90,7 +90,7 @@ export function AppSidebar() {
   const handleLogout = () => {
     localStorage.removeItem("AuthKey");
     setShowToast(true)
-
+      window.location.href = "/";
   };
   return (
     <Sidebar>
