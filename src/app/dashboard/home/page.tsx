@@ -58,7 +58,7 @@ const page = () => {
 
  const columns = [
     { key: 'guest_id', header: 'Guest ID', cellClassName: 'font-medium' },
-    { key: 'full_name', header: 'First Name', },
+    { key: 'full_name', header: 'Full Name', },
     { key: 'booking_id', header: 'Booking ID', },
     { key: 'service_no', header: 'Service No' },
     { key: 'phone', header: 'Phone Number' },

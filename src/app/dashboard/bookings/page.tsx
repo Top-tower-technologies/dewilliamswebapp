@@ -60,8 +60,14 @@ const page = () => {
   const [bookingData, setBookingData] = useState<TableData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  
+  // Pagination state
+  const [paginationInfo, setPaginationInfo] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10
+  })
   
   // Modal states
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -173,8 +179,14 @@ const page = () => {
       if (response.data.success && response.data.data) {
         const transformedData = transformApiData(response.data.data.data);
         setBookingData(transformedData);
-        setTotalPages(response.data.data.pagination.totalPages);
-        setCurrentPage(response.data.data.pagination.page);
+        
+        // Update pagination info
+        setPaginationInfo({
+          currentPage: response.data.data.pagination.page,
+          totalPages: response.data.data.pagination.totalPages,
+          totalItems: response.data.data.pagination.total,
+          itemsPerPage: response.data.data.pagination.limit
+        });
       } else {
         throw new Error(response.data.message || 'Failed to fetch reservations');
       }
@@ -184,6 +196,11 @@ const page = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle page changes from the table
+  const handlePageChange = (page: number) => {
+    fetchReservations(page, paginationInfo.itemsPerPage);
   };
 
   // Action Functions
@@ -196,7 +213,7 @@ const page = () => {
       
       if (response.data.success) {
         console.log('Booking confirmed successfully');
-        await fetchReservations(currentPage);
+        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
         setConfirmModalOpen(false);
         setSelectedBooking(null);
       } else {
@@ -219,7 +236,7 @@ const page = () => {
       
       if (response.data.success) {
         console.log('Booking cancelled successfully');
-        await fetchReservations(currentPage);
+        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
         setCancelModalOpen(false);
         setSelectedBooking(null);
       } else {
@@ -233,42 +250,16 @@ const page = () => {
     }
   };
 
-  // TODO: Implement these functions based on your API endpoints
-  const checkinGuest = async (booking: TableData) => {
-    try {
-      setActionLoading(true);
-      // Replace with your actual check-in API endpoint
-      const response = await axiosInstance.post(`/staff/bookings/${booking.id}/checkin`, {}, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-      });
-      
-      if (response.data.success) {
-        console.log('Guest checked in successfully');
-        await fetchReservations(currentPage);
-        setCheckinModalOpen(false);
-        setSelectedBooking(null);
-      } else {
-        throw new Error(response.data.message || 'Failed to check in guest');
-      }
-    } catch (error) {
-      console.error('Error checking in guest:', error);
-      setError('Failed to check in guest. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const checkoutGuest = async (booking: TableData) => {
     try {
       setActionLoading(true);
-      // Replace with your actual check-out API endpoint
       const response = await axiosInstance.post(`/staff/bookings/${booking.id}/checkout`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
       
       if (response.data.success) {
         console.log('Guest checked out successfully');
-        await fetchReservations(currentPage);
+        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
         setCheckoutModalOpen(false);
         setSelectedBooking(null);
       } else {
@@ -284,13 +275,8 @@ const page = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchReservations(currentPage);
-  }, [currentPage]);
-
-  // Handle page changes
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+    fetchReservations(1, 10); // Start with page 1
+  }, []);
 
   // Handle row actions
   const handleRowAction = async (actionKey: string, item: TableData, index: number) => {
@@ -353,7 +339,7 @@ const page = () => {
   };
 
   // Show loading state
-  if (loading) {
+  if (loading && bookingData.length === 0) {
     return (
       <MainLayout navigation={<p className='text-[20px] font-[400]'>Booking</p>} buttonText={"New Booking"} handleClick={() => router.push("/dashboard/bookings/new-booking")}>
         <div className='p-4'>
@@ -369,7 +355,7 @@ const page = () => {
   }
 
   // Show error state
-  if (error) {
+  if (error && bookingData.length === 0) {
     return (
       <MainLayout navigation={<p className='text-[20px] font-[400]'>Booking</p>} buttonText={"New Booking"} handleClick={() => router.push("/dashboard/bookings/new-booking")}>
         <div className='p-4'>
@@ -382,7 +368,7 @@ const page = () => {
               </div>
               <p className="text-red-600 mb-4">Error: {error}</p>
               <button 
-                onClick={() => fetchReservations(currentPage)}
+                onClick={() => fetchReservations(1, 10)}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
                 Retry
@@ -402,39 +388,18 @@ const page = () => {
             columns={columns}
             data={bookingData}
             actions={(row: TableData) => getActionsForStatus(row.status)}
-            itemsPerPage={10}
+            paginationMode="server"
+            paginationInfo={paginationInfo}
+            onPageChange={handlePageChange}
             showCheckbox={true}
             showActions={true}
             onRowAction={handleRowAction}
             renderCell={renderCell}
+            loading={loading}
           />
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center mt-6 space-x-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              
-              <span className="px-4 py-2">
-                Page {currentPage} of {totalPages}
-              </span>
-              
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
-          )}
         </GuestDetailsCard>
 
+        {/* All your modals remain the same */}
         {/* Cancel Booking Modal */}
         <Dialog open={cancelModalOpen} onOpenChange={() => setCancelModalOpen(false)}>
           <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
@@ -465,6 +430,7 @@ const page = () => {
             </div>
           </DialogContent>
         </Dialog>
+
 
         {/* Confirm Booking Modal */}
         <Dialog open={confirmModalOpen} onOpenChange={() => setConfirmModalOpen(false)}>
@@ -509,7 +475,7 @@ const page = () => {
 
             <div className="grid space-y-2">
               <Button 
-                onClick={() => selectedBooking && checkinGuest(selectedBooking)}
+                onClick={()=>router.push("/dashboard/reservation")}
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Checking In...' : 'Yes, Check In'}

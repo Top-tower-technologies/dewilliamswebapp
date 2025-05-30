@@ -1,9 +1,9 @@
 // ========================================
-// CORE DYNAMIC TABLE COMPONENT
+// CORE DYNAMIC TABLE COMPONENT WITH SERVER-SIDE PAGINATION
 // ========================================
 
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,16 +13,7 @@ import { MoreVertical } from "lucide-react";
 import { PaginationButton } from "./PaginationButton";
 
 /**
- * Core reusable table component with dynamic configuration
- * @param {string} title - Table title
- * @param {Array} columns - Column configuration array
- * @param {Array} data - Table data array
- * @param {Array|Function} actions - Row action configuration (array) or function that returns actions for each row
- * @param {number} itemsPerPage - Items per page for pagination
- * @param {boolean} showCheckbox - Show row selection checkboxes
- * @param {boolean} showActions - Show action dropdown
- * @param {Function} onRowAction - Callback for row actions
- * @param {Function} renderCell - Custom cell renderer function
+ * Core reusable table component with dynamic configuration and pagination support
  */
 type ColumnConfig = {
   key: string;
@@ -41,16 +32,31 @@ type ActionConfig = {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary';
 };
 
+type PaginationInfo = {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+};
+
 type DynamicTableProps = {
   title?: string;
   columns: ColumnConfig[];
   data: any[];
   actions?: ActionConfig[] | ((item: any) => ActionConfig[]);
+  
+  // Pagination props
+  paginationMode?: 'client' | 'server' | 'none';
   itemsPerPage?: number;
+  paginationInfo?: PaginationInfo;
+  onPageChange?: (page: number) => void;
+  
+  // Other props
   showCheckbox?: boolean;
   showActions?: boolean;
   onRowAction?: (actionKey: string, item: any, index: number) => void;
   renderCell?: (item: any, column: ColumnConfig) => React.ReactNode;
+  loading?: boolean;
 };
 
 export function DynamicTable({ 
@@ -58,26 +64,70 @@ export function DynamicTable({
   columns, 
   data, 
   actions = [],
-  itemsPerPage = 10,
+  paginationMode = 'client',
+  itemsPerPage = 8,
+  paginationInfo,
+  onPageChange,
   showCheckbox = true,
   showActions = true,
   onRowAction,
-  renderCell
+  renderCell,
+  loading = false
 }: DynamicTableProps) {
-  const [currentPage, setCurrentPage] = useState(1);
+  // Client-side pagination state
+  const [clientCurrentPage, setClientCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState(new Set());
+
+  // Reset selected rows when data changes
+  useEffect(() => {
+    setSelectedRows(new Set());
+  }, [data]);
 
   // ========================================
   // PAGINATION LOGIC
   // ========================================
-  const totalPages = Math.ceil(data.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = data.slice(startIndex, endIndex);
+  const getCurrentPageData = () => {
+    if (paginationMode === 'client') {
+      const startIndex = (clientCurrentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      return data.slice(startIndex, endIndex);
+    }
+    // For server-side pagination or no pagination, return all data
+    return data;
+  };
+
+  const getPaginationData = () => {
+    if (paginationMode === 'server' && paginationInfo) {
+      return paginationInfo;
+    }
+    
+    if (paginationMode === 'client') {
+      return {
+        currentPage: clientCurrentPage,
+        totalPages: Math.ceil(data.length / itemsPerPage),
+        totalItems: data.length,
+        itemsPerPage
+      };
+    }
+    
+    // No pagination
+    return null;
+  };
+
+  const handlePageChange = (page: number) => {
+    if (paginationMode === 'client') {
+      setClientCurrentPage(page);
+    } else if (paginationMode === 'server' && onPageChange) {
+      onPageChange(page);
+    }
+  };
 
   // ========================================
   // ROW SELECTION LOGIC
   // ========================================
+  const currentData = getCurrentPageData();
+  const pagination = getPaginationData();
+
   const toggleRowSelection = (index: number) => {
     const newSelected = new Set(selectedRows);
     if (newSelected.has(index)) {
@@ -130,8 +180,11 @@ export function DynamicTable({
   // PAGINATION BUTTONS GENERATION
   // ========================================
   const generatePaginationButtons = () => {
+    if (!pagination || pagination.totalPages <= 1) return [];
+    
     const buttons = [];
     const maxVisible = 5;
+    const { currentPage, totalPages } = pagination;
     
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
@@ -140,7 +193,7 @@ export function DynamicTable({
             key={i}
             number={i}
             currentPage={currentPage}
-            onClick={() => setCurrentPage(i)}
+            onClick={() => handlePageChange(i)}
           />
         );
       }
@@ -152,7 +205,7 @@ export function DynamicTable({
             key={i}
             number={i}
             currentPage={currentPage}
-            onClick={() => setCurrentPage(i)}
+            onClick={() => handlePageChange(i)}
           />
         );
       }
@@ -167,7 +220,7 @@ export function DynamicTable({
             key={i}
             number={i}
             currentPage={currentPage}
-            onClick={() => setCurrentPage(i)}
+            onClick={() => handlePageChange(i)}
           />
         );
       }
@@ -183,86 +236,111 @@ export function DynamicTable({
     <div className="space-y-4">
       {title && <h2 className="text-2xl font-bold">{title}</h2>}
       
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {showCheckbox && (
-              <TableHead className="w-12">
-                <Checkbox 
-                  checked={selectedRows.size === currentData.length && currentData.length > 0}
-                  onCheckedChange={toggleAllSelection}
-                />
-              </TableHead>
-            )}
-            {columns.map((column, index) => (
-              <TableHead key={index} className={column.className}>
-                {column.header}
-              </TableHead>
-            ))}
-            {showActions && (
-              <TableHead className="w-12"></TableHead>
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {currentData.map((item, index) => {
-            const rowActions = getActionsForRow(item);
-            
-            return (
-              <TableRow key={index}>
-                {showCheckbox && (
-                  <TableCell>
-                    <Checkbox 
-                      checked={selectedRows.has(index)}
-                      onCheckedChange={() => toggleRowSelection(index)}
-                    />
-                  </TableCell>
-                )}
-                {columns.map((column, colIndex) => (
-                  <TableCell key={colIndex} className={column.cellClassName}>
-                    {cellRenderer(item, column)}
-                  </TableCell>
-                ))}
-                {showActions && rowActions.length > 0 && (
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {rowActions.map((action, actionIndex) => (
-                          <DropdownMenuItem 
-                            key={actionIndex}
-                            onClick={() => onRowAction?.(action.key, item, index)}
-                            className="flex items-center gap-2"
-                          >
-                            {action.icon && action.icon}
-                            {action.label}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                )}
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        )}
+        
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {showCheckbox && (
+                <TableHead className="w-12">
+                  <Checkbox 
+                    checked={selectedRows.size === currentData.length && currentData.length > 0}
+                    onCheckedChange={toggleAllSelection}
+                  />
+                </TableHead>
+              )}
+              {columns.map((column, index) => (
+                <TableHead key={index} className={column.className}>
+                  {column.header}
+                </TableHead>
+              ))}
+              {showActions && (
+                <TableHead className="w-12"></TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {currentData.length === 0 ? (
+              <TableRow>
+                <TableCell 
+                  colSpan={columns.length + (showCheckbox ? 1 : 0) + (showActions ? 1 : 0)}
+                  className="text-center py-8 text-gray-500"
+                >
+                  No data available
+                </TableCell>
               </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+            ) : (
+              currentData.map((item, index) => {
+                const rowActions = getActionsForRow(item);
+                
+                return (
+                  <TableRow key={index}>
+                    {showCheckbox && (
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedRows.has(index)}
+                          onCheckedChange={() => toggleRowSelection(index)}
+                        />
+                      </TableCell>
+                    )}
+                    {columns.map((column, colIndex) => (
+                      <TableCell key={colIndex} className={column.cellClassName}>
+                        {cellRenderer(item, column)}
+                      </TableCell>
+                    ))}
+                    {showActions && rowActions.length > 0 && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {rowActions.map((action, actionIndex) => (
+                              <DropdownMenuItem 
+                                key={actionIndex}
+                                onClick={() => onRowAction?.(action.key, item, index)}
+                                className="flex items-center gap-2"
+                              >
+                                {action.icon && action.icon}
+                                {action.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-      {totalPages > 1 && (
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
+            Page {pagination.currentPage} of {pagination.totalPages}
+            {paginationMode === 'server' && (
+              <span className="ml-2">
+                ({pagination.totalItems} total items)
+              </span>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             <Button 
               variant="outline" 
               size="sm" 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={pagination.currentPage === 1 || loading}
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
             >
               Previous
             </Button>
@@ -270,8 +348,8 @@ export function DynamicTable({
             <Button 
               variant="outline" 
               size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages || loading}
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
             >
               Next
             </Button>

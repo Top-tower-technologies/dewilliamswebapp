@@ -13,15 +13,15 @@ import axiosInstance from '@/api/axiosInstance';
 import Toast from '@/components/reusable/Toast';
 import { PaymentModal } from '@/components/reusable/PaymentModal';
 
-interface Room {
-    id: string;
-    name: string;
-    service_number: string;
-    room_type: string;
-    standard_NGN_price: number;
-    currency: string;
-    availability_status: string;
-}
+// interface Room {
+//     id: string;
+//     name: string;
+//     service_number: string;
+//     room_type: string;
+//     standard_NGN_price: number;
+//     currency: string;
+//     availability_status: string;
+// }
 
 interface BookingData {
     check_in: string;
@@ -49,8 +49,9 @@ interface ToastState {
 const NewBookingPage = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [rooms, setRooms] = useState<Room[]>([]);
-    const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+    const [roomsLoading, setRoomsLoading] = useState(false);
+    const [rooms, setRooms] = useState<any>([]);
+    const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
     const [toast, setToast] = useState<ToastState>({
         show: false,
         message: "",
@@ -90,23 +91,61 @@ const NewBookingPage = () => {
         setToast(prev => ({ ...prev, show: false }));
     };
 
-    // Fetch rooms on component mount
-    useEffect(() => {
-        const fetchRooms = async () => {
-            try {
-                const response = await axiosInstance.get(`/staff/services/room_service/list/view`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` },
-                });
-                console.log(response.data);
-                setRooms(response.data.data);
-            } catch (error: any) {
-                console.error("Error fetching rooms:", error);
-                showToast(error?.response?.data?.message || "Failed to fetch available rooms.", "error");
-            }
-        };
+    // Fetch available rooms based on dates and guest count
+    const fetchAvailableRooms = async () => {
+        // Only fetch if we have required data
+        if (!bookingData.check_in || !bookingData.check_out) {
+            setRooms([]);
+            setSelectedRoom(null);
+            return;
+        }
 
-        fetchRooms();
-    }, []);
+        setRoomsLoading(true);
+        try {
+            const requestBody = {
+                check_in: bookingData.check_in,
+                check_out: bookingData.check_out,
+                guests: {
+                    adult: bookingData.guests.adult,
+                    children: bookingData.guests.children,
+                    infant: bookingData.guests.infant
+                }
+            };
+
+            const response = await axiosInstance.post(
+                `/guest/find-stay/room_service/anonymous`,
+                requestBody
+            );
+
+            console.log("Available rooms response:", response.data);
+            setRooms(response.data.data || []);
+
+            // Reset selected room if it's no longer available
+            if (selectedRoom && !response.data.data?.find((room: any) => room.id === selectedRoom.id)) {
+                setSelectedRoom(null);
+            }
+
+            if (response.data.data?.length === 0) {
+                showToast("No rooms available for the selected dates and guest count.", "info");
+            }
+        } catch (error: any) {
+            console.error("Error fetching available rooms:", error);
+            showToast(error?.response?.data?.message || "Failed to fetch available rooms.", "error");
+            setRooms([]);
+            setSelectedRoom(null);
+        } finally {
+            setRoomsLoading(false);
+        }
+    };
+
+    // Fetch rooms when dates or guest count changes
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            fetchAvailableRooms();
+        }, 500); // Debounce API calls
+
+        return () => clearTimeout(timeoutId);
+    }, [bookingData.check_in, bookingData.check_out, bookingData.guests.adult, bookingData.guests.children, bookingData.guests.infant]);
 
     // Handle input changes
     const handleInputChange = (field: string, value: any) => {
@@ -129,7 +168,7 @@ const NewBookingPage = () => {
 
     // Handle room selection
     const handleRoomSelect = (roomId: string) => {
-        const room = rooms.find(r => r.id === roomId);
+        const room = rooms.find((r: any) => r.id === roomId);
         setSelectedRoom(room || null);
     };
 
@@ -168,10 +207,8 @@ const NewBookingPage = () => {
             );
             setPaymentModalOpen(true)
             showToast("Booking created successfully!", "success");
-            //this is what i changed
             setPaymentDetails(response.data.data)
             console.log("Booking response:", response.data.data);
-
 
         } catch (error: any) {
             console.error("Error creating booking:", error);
@@ -196,6 +233,7 @@ const NewBookingPage = () => {
             address: '',
         });
         setSelectedRoom(null);
+        setRooms([]);
         showToast("Form has been reset", "info");
     };
 
@@ -253,6 +291,7 @@ const NewBookingPage = () => {
                                             value={bookingData.check_in}
                                             onChange={(e) => handleInputChange('check_in', e.target.value)}
                                             className=" focus:border-yellow-400 focus:ring-yellow-400/20"
+                                            min={new Date().toISOString().split('T')[0]}
                                         />
                                     </div>
                                     <div>
@@ -262,6 +301,7 @@ const NewBookingPage = () => {
                                             value={bookingData.check_out}
                                             onChange={(e) => handleInputChange('check_out', e.target.value)}
                                             className=" focus:border-yellow-400 focus:ring-yellow-400/20"
+                                            min={bookingData.check_in || new Date().toISOString().split('T')[0]}
                                         />
                                     </div>
                                     <div>
@@ -278,38 +318,6 @@ const NewBookingPage = () => {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Room Details */}
-                            <div className='rounded-xl border overflow-hidden shadow-sm'>
-                                <div className='px-4 py-3 bg-gray-100 border-b'>
-                                    <p className="font-semibold text-gray-700">Room Details</p>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-600 mb-2">Available Rooms *</label>
-                                        <Select onValueChange={handleRoomSelect} value={selectedRoom?.id || ""}>
-                                            <SelectTrigger className="">
-                                                <SelectValue placeholder="Select a room" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {rooms.map((room) => (
-                                                    <SelectItem key={room.id} value={room.id}>
-                                                        {room.name} - {room.service_number} (₦{room.standard_NGN_price}/night)
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    {selectedRoom && (
-                                        <div className="bg-amber-50 p-3 rounded-lg">
-                                            <p className="text-sm font-medium text-gray-700">Selected Room:</p>
-                                            <p className="text-amber-800 font-semibold">{selectedRoom.name}</p>
-                                            <p className="text-gray-600 text-sm">Room #{selectedRoom.service_number}</p>
-                                            <p className="text-amber-700 font-medium">₦{selectedRoom.standard_NGN_price}/night</p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
@@ -404,6 +412,7 @@ const NewBookingPage = () => {
                                                         type="button"
                                                         onClick={() => handleGuestChange('adult', bookingData.guests.adult - 1)}
                                                         className="text-yellow-600 hover:text-yellow-800 px-1"
+                                                        disabled={bookingData.guests.adult <= 1}
                                                     >-</button>
                                                     <span className="text-sm min-w-[20px] text-center">{bookingData.guests.adult}</span>
                                                     <button
@@ -418,6 +427,7 @@ const NewBookingPage = () => {
                                                         type="button"
                                                         onClick={() => handleGuestChange('children', bookingData.guests.children - 1)}
                                                         className="text-amber-600 hover:text-amber-800 px-1"
+                                                        disabled={bookingData.guests.children <= 0}
                                                     >-</button>
                                                     <span className="text-sm min-w-[20px] text-center">{bookingData.guests.children}</span>
                                                     <button
@@ -432,6 +442,7 @@ const NewBookingPage = () => {
                                                         type="button"
                                                         onClick={() => handleGuestChange('infant', bookingData.guests.infant - 1)}
                                                         className="text-orange-600 hover:text-orange-800 px-1"
+                                                        disabled={bookingData.guests.infant <= 0}
                                                     >-</button>
                                                     <span className="text-sm min-w-[20px] text-center">{bookingData.guests.infant}</span>
                                                     <button
@@ -455,6 +466,60 @@ const NewBookingPage = () => {
                                             />
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Room Details */}
+                            <div className='rounded-xl border overflow-hidden shadow-sm'>
+                                <div className='px-4 py-3 bg-gray-100 border-b'>
+                                    <div className="font-semibold text-gray-700 flex items-center justify-between">
+                                        Room Details
+                                        {roomsLoading && (
+                                            <div className="w-4 h-4 border-2 border-yellow-600/30 border-t-yellow-600 rounded-full animate-spin"></div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="p-4">
+                                    {!bookingData.check_in || !bookingData.check_out ? (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>Please select check-in and check-out dates to see available rooms</p>
+                                        </div>
+                                    ) : roomsLoading ? (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>Searching for available rooms...</p>
+                                        </div>
+                                    ) : rooms.length === 0 ? (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>No rooms available for the selected dates and guest count</p>
+                                            <p className="text-sm mt-2">Try different dates or adjust the number of guests</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-600 mb-2">Available Rooms *</label>
+                                                <Select onValueChange={handleRoomSelect} value={selectedRoom?.id || ""}>
+                                                    <SelectTrigger className="">
+                                                        <SelectValue placeholder="Select a room" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {rooms.map((room: any) => (
+                                                            <SelectItem key={room.id} value={room.id}>
+                                                                {room.category.name} - {room.inventory_id} (₦{room.category?.price?.base_price.toLocaleString()}/night)
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            {selectedRoom && (
+                                                <div className="bg-amber-50 p-3 rounded-lg">
+                                                    <p className="text-sm font-medium text-gray-700">Selected Room:</p>
+                                                    <p className="text-amber-800 font-semibold">{selectedRoom.category.name}</p>
+                                                    <p className="text-gray-600 text-sm">Room #{selectedRoom.inventory_id}</p>
+                                                    <p className="text-amber-700 font-medium">₦{selectedRoom.category.price.base_price.toLocaleString()}/night</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </CardContent>
@@ -493,14 +558,15 @@ const NewBookingPage = () => {
                             {selectedRoom ? (
                                 <div className="space-y-3">
                                     <h4 className="font-semibold text-gray-700 border-b pb-1">Room & Pricing</h4>
-                                    <div className="bg-yellow-50 p-3 rounded-lg">
-                                        <p className="font-medium text-gray-700">{selectedRoom.name}</p>
-                                        <p className="text-sm text-gray-600">Room #{selectedRoom.service_number}</p>
-                                        <p className="text-sm text-gray-600">{selectedRoom.room_type}</p>
+                                    <div className="bg-amber-50 p-3 rounded-lg">
+                                        <p className="text-sm font-medium text-gray-700">Selected Room:</p>
+                                        <p className="text-amber-800 font-semibold">{selectedRoom.category.name}</p>
+                                        <p className="text-gray-600 text-sm">Room #{selectedRoom.inventory_id}</p>
+                                        <p className="text-amber-700 font-medium">₦{selectedRoom.category.price.base_price.toLocaleString()}/night</p>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
+                                        {/* <div className="flex justify-between text-sm">
                                             <span>{nights} Night{nights !== 1 ? 's' : ''}</span>
                                             <span>₦{roomPrice.toLocaleString()}/night</span>
                                         </div>
@@ -512,10 +578,10 @@ const NewBookingPage = () => {
                                             <span>VAT (7.5%)</span>
                                             <span>₦{vat.toLocaleString()}</span>
                                         </div>
-                                        <hr className="" />
+                                        <hr className="" /> */}
                                         <div className="flex justify-between font-bold text-lg">
                                             <span>Total</span>
-                                            <span className="text-yellow-600">₦{total.toLocaleString()}</span>
+                                            <span className="text-yellow-600">₦{selectedRoom.category.price.base_price.toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>

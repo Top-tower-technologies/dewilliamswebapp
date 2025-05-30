@@ -285,7 +285,7 @@ export default function Dashboard() {
                 data={rooms}
                 actions={(item: RoomData) => getActionsForStatus(item.status)}
                 onRowAction={handleRowAction}
-                itemsPerPage={10}
+                itemsPerPage={8}
                 showCheckbox={true}
                 showActions={true}
                 renderCell={renderCell}
