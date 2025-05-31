@@ -255,7 +255,7 @@ const page = () => {
       setActionLoading(true);
       const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-      });
+      }); 
       
       if (response.data.success) {
         console.log('Guest checked out successfully');
