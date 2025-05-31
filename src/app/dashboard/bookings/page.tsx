@@ -253,7 +253,7 @@ const page = () => {
   const checkoutGuest = async (booking: TableData) => {
     try {
       setActionLoading(true);
-      const response = await axiosInstance.post(`/staff/bookings/${booking.id}/checkout`, {}, {
+      const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
       
