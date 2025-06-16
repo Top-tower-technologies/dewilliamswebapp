@@ -48,14 +48,14 @@ type DynamicTableProps = {
   // Pagination props
   paginationMode?: 'client' | 'server' | 'none';
   itemsPerPage?: number;
-  paginationInfo?: PaginationInfo;
+  paginationInfo?: PaginationInfo | any;
   onPageChange?: (page: number) => void;
   
   // Other props
   showCheckbox?: boolean;
   showActions?: boolean;
   onRowAction?: (actionKey: string, item: any, index: number) => void;
-  renderCell?: (item: any, column: ColumnConfig) => React.ReactNode;
+  renderCell?: (item: any, column: ColumnConfig) => React.ReactNode ;
   loading?: boolean;
 };
 

@@ -113,39 +113,29 @@ const page = () => {
         return [
           { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
           { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
       
       case 'confirmed':
         return [
           { key: 'checkin', label: 'Check In', icon: <LogIn size={16} />, variant: 'default' },
           { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
       
       case 'deposited':
         return [
           { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
       
       case 'checked_in':
         return [
           { key: 'checkout', label: 'Check Out', icon: <LogOut size={16} />, variant: 'default' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
       
       case 'cancelled':
       case 'expired':
       case 'checked_out':
-        return [
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
-        ];
-      
       default:
-        return [
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
-        ];
+        return [];
     }
   };
 
