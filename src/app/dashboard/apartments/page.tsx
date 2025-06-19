@@ -8,11 +8,13 @@ import { DynamicTable } from "@/components/reusable/GuestTable";
 import { OccupancyTrendCard } from "@/components/reusable/OccupancyTrendCard";
 import PageHeader from "@/components/reusable/PageHeader";
 import { StatCard } from "@/components/reusable/StatCard";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 
 export default function Dashboard() {
   const [rooms, setRooms] = useState<any[]>([]);
+  const router = useRouter()
   const columns = [
     { key: 'service_number', header: 'Apartment Number', cellClassName: 'font-medium' },
     { key: 'name', header: 'Apartment Name', },
@@ -59,7 +61,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <MainLayout buttonText={""} buttonVisible={true} navigation={<PageHeader page='Apartments' icon={false} />}>
+    <MainLayout buttonText={"New Apartment"} handleClick={() => router.push("/dashboard/apartments/new-apartment")}>
       <div className="container mx-auto py-6 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
