@@ -131,7 +131,7 @@ const Page = () => {
     <MainLayout
       navigation={<p className='text-[20px] font-[400]'>Employees</p>}
       buttonText={"New Employee"}
-      handleClick={() => router.push("/dashboard/admins/new")}
+      // handleClick={() => router.push("/dashboard/admins/new")}
     >      
       <div className='p-4'>
         <GuestDetailsCard>
