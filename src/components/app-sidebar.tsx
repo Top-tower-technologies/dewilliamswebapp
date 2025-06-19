@@ -1,5 +1,5 @@
-"use client"
-import React, { useState } from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import {
   Mail,
   Home,
@@ -9,8 +9,8 @@ import {
   BedSingle,
   Sparkles,
   DoorOpen,
-  PowerCircle,
   Power,
+  UserCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,103 +24,88 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Avatar } from "@radix-ui/react-avatar";
-import { AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Toast from "./reusable/Toast";
 
-// Menu items.
-const items = [
-  {
-    groupTitle: "Quick Access",
-    content: [
-      {
-        title: "HomePage",
-        url: "/dashboard/home",
-        icon: Home,
-      },
-      {
-        title: "Bookings",
-        url: "/dashboard/bookings",
-        icon: Album,
-      },
-    ],
-  },
-  {
-    groupTitle: "Management",
-    content: [
-      {
-        title: "Guests",
-        url: "/dashboard/guests",
-        icon: UserRound,
-      },
-      {
-        title: "Reservation",
-        url: "/dashboard/reservation",
-        icon: Mail,
-      },
-    ],
-  },
-  {
-    groupTitle: "Services",
-    content: [
-      {
-        title: "Rooms",
-        url: "/dashboard/rooms",
-        icon: DoorOpen,
-      },
-      {
-        title: "Apartments",
-        url: "/dashboard/apartments",
-        icon: BedSingle,
-      },
-      {
-        title: "Spa & Fitness",
-        url: "/dashboard/spa-fitness",
-        icon: Sparkles,
-      },
-    ],
-  },
-];
-
 export function AppSidebar() {
-  const [showToast, setShowToast] = useState(false)
-  const pathname = usePathname()
+  const [showToast, setShowToast] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userRole = localStorage.getItem("UserRole");
+      setIsSuperAdmin(userRole === "super_admin");
+    }
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("AuthKey");
-    setShowToast(true)
-      window.location.href = "/";
+    localStorage.removeItem("UserRole");
+    setShowToast(true);
+    window.location.href = "/";
   };
+
+  const menuItems = [
+    {
+      groupTitle: "Quick Access",
+      content: [
+        { title: "HomePage", url: "/dashboard/home", icon: Home },
+        { title: "Bookings", url: "/dashboard/bookings", icon: Album },
+      ],
+    },
+    {
+      groupTitle: "Management",
+      content: [
+        { title: "Guests", url: "/dashboard/guests", icon: UserRound },
+        { title: "Reservation", url: "/dashboard/reservation", icon: Mail },
+        ...(isSuperAdmin
+          ? [{ title: "Employees", url: "/dashboard/employees", icon: UserCircle }]
+          : []),
+      ],
+    },
+    {
+      groupTitle: "Services",
+      content: [
+        { title: "Rooms", url: "/dashboard/rooms", icon: DoorOpen },
+        { title: "Apartments", url: "/dashboard/apartments", icon: BedSingle },
+        { title: "Spa & Fitness", url: "#", icon: Sparkles },
+      ],
+    },
+  ];
+
   return (
     <Sidebar>
-      <SidebarHeader className="px-10 py-7 flex items-center flex-row justify-center">
-        <Avatar className="">
-          {/* <AvatarImage src="https://github.com/shadcn.png" /> */}
-          <AvatarFallback className="bg-black text-white p-2 px-2.5">
-            FD
-          </AvatarFallback>
+      <SidebarHeader className="px-5 py-7 flex flex-row items-center justify-center">
+        <Avatar>
+          {/* <AvatarImage src="https://some-url" alt="User" /> */}
+          <AvatarFallback className="bg-black text-white p-2 px-2.5">SA</AvatarFallback>
         </Avatar>
-        <h1 className="text-xl ml-3">Front Desk</h1>
-        <p></p>
+        <h1 className="text-xl ml-3">{isSuperAdmin ? "Super Admin" : "Front Desk"}</h1>
       </SidebarHeader>
+
       <SidebarContent className="pl-2">
-        {items.map((item, index) => (
+        {menuItems.map((section, index) => (
           <SidebarGroup key={index}>
             <SidebarGroupLabel className="text-md mb-2 font-normal">
-              {item.groupTitle}
+              {section.groupTitle}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {item.content.map((subItem) => (
+                {section.content.map(({ title, url, icon: Icon }) => (
                   <SidebarMenuItem
-                    key={subItem.title}
-                    className={`mb-2 transition py-1 ${pathname.includes(subItem.url)? "bg-[#FDFFE7] text-[#AB8000]" : "sidebar"}`}
+                    key={title}
+                    className={`mb-2 transition py-1 ${pathname === url
+                        ? "bg-[#FDFFE7] text-[#AB8000]"
+                        : "sidebar"
+                      }`}
                   >
                     <SidebarMenuButton asChild className="sidebar">
-                      <Link href={subItem.url}>
-                        <subItem.icon />
-                        <span className="text-[17px]">{subItem.title}</span>
+                      <Link href={url}>
+                        <Icon />
+                        <span className="text-[17px] ml-2">{title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -130,19 +115,20 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
       <SidebarFooter className="pl-2">
         <SidebarMenu>
-          <SidebarMenuButton className="logout py-4 text-[#FF646E]" onClick={handleLogout}>
+          <SidebarMenuButton
+            className="logout py-4 text-[#FF646E]"
+            onClick={handleLogout}
+          >
             <Power />
-            <span className="text-[17px]">Logout</span>
+            <span className="text-[17px] ml-2">Logout</span>
           </SidebarMenuButton>
         </SidebarMenu>
       </SidebarFooter>
 
-      {showToast && (
-        <Toast
-        message="Successfully Logged Out"/>
-      )}
+      {showToast && <Toast message="Successfully Logged Out" />}
     </Sidebar>
   );
 }

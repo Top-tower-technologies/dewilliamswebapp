@@ -8,6 +8,7 @@ import AuthLayout from "@/components/layout/AuthLayout";
 import { apiService } from "@/api/apiService";
 import Toast from "@/components/reusable/Toast";
 import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,17 +24,28 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const response = await apiService.login(email, password);
-      localStorage.setItem('AuthKey', response.data.data.token);
+      const token = response.data.data.token;
+
+      // Store token
+      localStorage.setItem('AuthKey', token);
+
+      // Decode token to extract role
+      const decoded = jwtDecode(token);
+      const role = (decoded as any).role || (decoded as any)?.user?.role || null;
+
+      // Store or use role
+      localStorage.setItem('UserRole', role); // optional: set context/global state instead
+
+      // Navigate & show success
       router.push("/dashboard/home");
       setToastMessage(response.data.message || "Login successful");
       setToastType("success");
       setShowToast(true);
-      localStorage.setItem('AuthKey', response.data.data.token);
     } catch (error: any) {
-      setToastMessage(error?.data?.message || "Login failed");
+      setToastMessage(error?.response?.data?.message || "Login failed");
       setToastType("error");
       setShowToast(true);
-      console.log(error)
+      console.log("Login error:", error);
     } finally {
       setLoading(false);
     }

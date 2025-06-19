@@ -19,6 +19,7 @@ interface ApiBookingData {
   total_amount: string;
   occupancy: number;
   status: string;
+  created_at: string;
 }
 
 interface ApiResponse {
@@ -41,7 +42,7 @@ interface TableData {
   name: string;
   number: string;
   roomNo: string;
-  dateandtime: string;
+  created_at: string;
   price: string;
   status: string;
   guest_id: string;
@@ -60,7 +61,7 @@ const page = () => {
   const [bookingData, setBookingData] = useState<TableData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Pagination state
   const [paginationInfo, setPaginationInfo] = useState({
     currentPage: 1,
@@ -68,7 +69,7 @@ const page = () => {
     totalItems: 0,
     itemsPerPage: 10
   })
-  
+
   // Modal states
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
@@ -82,7 +83,7 @@ const page = () => {
     { key: 'name', header: 'Full Name' },
     { key: 'number', header: 'Phone Number' },
     { key: 'roomNo', header: 'Room No' },
-    { key: 'dateandtime', header: 'Issue date and time' },
+    { key: 'created_at', header: 'Issue date and time' },
     { key: 'price', header: 'Total Amount' },
     {
       key: 'status',
@@ -107,45 +108,35 @@ const page = () => {
   // Dynamic actions based on status
   const getActionsForStatus = (status: string): ActionItem[] => {
     const normalizedStatus = status.toLowerCase();
-    
+
     switch (normalizedStatus) {
       case 'initiated':
         return [
           { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
           { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
-      
+
       case 'confirmed':
         return [
           { key: 'checkin', label: 'Check In', icon: <LogIn size={16} />, variant: 'default' },
           { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
-      
+
       case 'deposited':
         return [
           { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
-      
+
       case 'checked_in':
         return [
           { key: 'checkout', label: 'Check Out', icon: <LogOut size={16} />, variant: 'default' },
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
         ];
-      
+
       case 'cancelled':
       case 'expired':
       case 'checked_out':
-        return [
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
-        ];
-      
       default:
-        return [
-          { key: 'details', label: 'View Details', icon: <User size={16} />, variant: 'outline' }
-        ];
+        return [];
     }
   };
 
@@ -156,7 +147,7 @@ const page = () => {
       name: item.full_name,
       number: item.phone,
       roomNo: item.service_no,
-      dateandtime: new Date().toLocaleDateString(), // You might want to add actual date from API
+      created_at: item.created_at.slice(0, 10), // Format date to YYYY-MM-DD HH:mm
       price: `₦${parseFloat(item.total_amount).toLocaleString()}`,
       status: item.status,
       guest_id: item.guest_id,
@@ -169,17 +160,17 @@ const page = () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       const response = await axiosInstance.get(`/staff/reservations?page=${page}&limit=${limit}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
-      
+
       console.log(response.data);
-      
+
       if (response.data.success && response.data.data) {
         const transformedData = transformApiData(response.data.data.data);
         setBookingData(transformedData);
-        
+
         // Update pagination info
         setPaginationInfo({
           currentPage: response.data.data.pagination.page,
@@ -210,7 +201,7 @@ const page = () => {
       const response = await axiosInstance.post(`/staff/bookings/${booking.id}/confirm`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
-      
+
       if (response.data.success) {
         console.log('Booking confirmed successfully');
         await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
@@ -233,7 +224,7 @@ const page = () => {
       const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
-      
+
       if (response.data.success) {
         console.log('Booking cancelled successfully');
         await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
@@ -255,8 +246,8 @@ const page = () => {
       setActionLoading(true);
       const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-      }); 
-      
+      });
+
       if (response.data.success) {
         console.log('Guest checked out successfully');
         await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
@@ -281,14 +272,14 @@ const page = () => {
   // Handle row actions
   const handleRowAction = async (actionKey: string, item: TableData, index: number) => {
     console.log(`Action: ${actionKey}`, item);
-    
+
     setSelectedBooking(item);
-    
+
     switch (actionKey) {
       case 'confirm':
         setConfirmModalOpen(true);
         break;
-        
+
       case 'cancel':
         setCancelModalOpen(true);
         break;
@@ -300,12 +291,12 @@ const page = () => {
       case 'checkout':
         setCheckoutModalOpen(true);
         break;
-        
+
       case 'details':
         console.log(`Viewing details for ${item.name}`);
         router.push(`/dashboard/bookings/${item.id}`);
         break;
-        
+
       default:
         console.log(`Unknown action: ${actionKey}`);
         break;
@@ -367,7 +358,7 @@ const page = () => {
                 </svg>
               </div>
               <p className="text-red-600 mb-4">Error: {error}</p>
-              <button 
+              <button
                 onClick={() => fetchReservations(1, 10)}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
@@ -408,20 +399,20 @@ const page = () => {
             </div>
             <DialogTitle className="text-2xl">Cancel Booking?</DialogTitle>
             <DialogDescription className="text-center text-md">
-              Are you sure you want to cancel the booking for <strong>{selectedBooking?.name}</strong>? 
+              Are you sure you want to cancel the booking for <strong>{selectedBooking?.name}</strong>?
               This action cannot be reversed.
             </DialogDescription>
 
             <div className="grid space-y-2">
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={() => selectedBooking && cancelBooking(selectedBooking)}
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Cancelling...' : 'Yes, Cancel Booking'}
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => setCancelModalOpen(false)}
                 disabled={actionLoading}
               >
@@ -440,19 +431,19 @@ const page = () => {
             </div>
             <DialogTitle className="text-2xl">Confirm Booking?</DialogTitle>
             <DialogDescription className="text-center text-md">
-              Are you sure you want to confirm the booking for <strong>{selectedBooking?.name}</strong>? 
+              Are you sure you want to confirm the booking for <strong>{selectedBooking?.name}</strong>?
               Room {selectedBooking?.roomNo} will be reserved.
             </DialogDescription>
 
             <div className="grid space-y-2">
-              <Button 
+              <Button
                 onClick={() => selectedBooking && confirmBooking(selectedBooking)}
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Confirming...' : 'Yes, Confirm Booking'}
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => setConfirmModalOpen(false)}
                 disabled={actionLoading}
               >
@@ -474,14 +465,14 @@ const page = () => {
             </DialogDescription>
 
             <div className="grid space-y-2">
-              <Button 
-                onClick={()=>router.push("/dashboard/reservation")}
+              <Button
+                onClick={() => router.push("/dashboard/reservation")}
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Checking In...' : 'Yes, Check In'}
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => setCheckinModalOpen(false)}
                 disabled={actionLoading}
               >
@@ -503,14 +494,14 @@ const page = () => {
             </DialogDescription>
 
             <div className="grid space-y-2">
-              <Button 
+              <Button
                 onClick={() => selectedBooking && checkoutGuest(selectedBooking)}
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Checking Out...' : 'Yes, Check Out'}
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => setCheckoutModalOpen(false)}
                 disabled={actionLoading}
               >
