@@ -1,9 +1,10 @@
-"use client"
-import MainLayout from '@/components/layout/MainLayout'
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { DynamicTable } from '@/components/reusable/GuestTable'
-import { GuestDetailsCard } from '@/components/reusable/GuestDetailsCard'
+"use client";
+import MainLayout from '@/components/layout/MainLayout';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { DynamicTable } from '@/components/reusable/GuestTable';
+import { GuestDetailsCard } from '@/components/reusable/GuestDetailsCard';
+import axiosInstance from '@/api/axiosInstance';
 
 interface TableData {
   adminId: string;
@@ -12,63 +13,44 @@ interface TableData {
   status: string;
 }
 
-const page = () => {
-  const router = useRouter()
-  const [bookingData, setBookingData] = useState<TableData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [paginationInfo, setPaginationInfo] = useState({
-    page: 1,
-    totalPages: 30,
-  });
+const Page = () => {
+  const router = useRouter();
+  const [bookingData, setBookingData] = useState<TableData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchReservations(paginationInfo.page, 10)
-  }, [])
+    fetchReservations();
+  }, []);
 
-  const fetchReservations = async (page: number, limit: number) => {
+  const fetchReservations = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Simulated fetch - replace with real API call
-      const response = await new Promise<{ data: TableData[] }>((resolve) => {
-        setTimeout(() => {
-          resolve({
-            data: [
-              {
-                adminId: "ADM-001-EA",
-                fullName: "Oyefeso Afolabi",
-                email: "oyefesoafolabiteniola@gmail.com",
-                status: "Pending Verification",
-              },
-              {
-                adminId: "ADM-001-EA",
-                fullName: "Oyefeso Afolabi",
-                email: "oyefesoafolabiteniola@gmail.com",
-                status: "Verified",
-              },
-              {
-                adminId: "ADM-001-EA",
-                fullName: "Oyefeso Afolabi",
-                email: "oyefesoafolabiteniola@gmail.com",
-                status: "Pending Verification",
-              },
-            ]
-          });
-        }, 1000);
+      const response = await axiosInstance.get(`/staff/employees`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('AuthKey')}`,
+        },
       });
-      setBookingData(response.data);
+
+      console.log("Response:", response.data.data.data);
+
+      // Adjust this if your API response shape differs
+      setBookingData(response.data.data.data || []);
     } catch (err: any) {
-      setError('Failed to fetch reservations.');
+      console.error("Fetch error:", err);
+      setError('Failed to fetch admins.');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   const columns = [
-    { key: "adminId", header: "Admin ID" },
-    { key: "fullName", header: "Full Name" },
+    { key: "role", header: "Role" },
+    { key: "first_name", header: "First Name" },
+    { key: "last_name", header: "Last Name" },
     { key: "email", header: "Email Address" },
+    { key: "phone", header: "Phone Number" },
     { key: "status", header: "Status" },
   ];
 
@@ -85,31 +67,25 @@ const page = () => {
     return item[column.key as keyof TableData];
   };
 
-  const handlePageChange = (page: number) => {
-    setPaginationInfo((prev) => ({ ...prev, page }));
-    fetchReservations(page, 10);
-  };
-
   const handleRowAction = (action: string, row: TableData) => {
     console.log("Action:", action, "on", row);
   };
 
-  const getActionsForStatus = (status: string) => {
-    return [
-      {
-        key: "view",
-        label: "View Details",
-      },
-      {
-        key: status === "Verified" ? "revoke" : "verify",
-        label: status === "Verified" ? "Revoke Access" : "Verify Admin",
-      },
-    ];
-  };
+  const getActionsForStatus = (status: string) => [
+    { key: "view", label: "View Details" },
+    {
+      key: status === "Verified" ? "revoke" : "verify",
+      label: status === "Verified" ? "Revoke Access" : "Verify Admin",
+    },
+  ];
 
   if (loading && bookingData.length === 0) {
     return (
-      <MainLayout navigation={<p className='text-[20px] font-[400]'>Admins</p>} buttonText={"New Admin"} handleClick={() => router.push("/dashboard/admins/new")}>        
+      <MainLayout
+        navigation={<p className='text-[20px] font-[400]'>Admins</p>}
+        buttonText={"New Admin"}
+        handleClick={() => router.push("/dashboard/admins/new")}
+      >        
         <div className='p-4'>
           <GuestDetailsCard>
             <div className="flex justify-center items-center h-64">
@@ -124,7 +100,11 @@ const page = () => {
 
   if (error && bookingData.length === 0) {
     return (
-      <MainLayout navigation={<p className='text-[20px] font-[400]'>Admins</p>} buttonText={"New Admin"} handleClick={() => router.push("/dashboard/admins/new")}>        
+      <MainLayout
+        navigation={<p className='text-[20px] font-[400]'>Admins</p>}
+        buttonText={"New Admin"}
+        handleClick={() => router.push("/dashboard/admins/new")}
+      >        
         <div className='p-4'>
           <GuestDetailsCard>
             <div className="flex flex-col justify-center items-center h-64">
@@ -135,7 +115,7 @@ const page = () => {
               </div>
               <p className="text-red-600 mb-4">Error: {error}</p>
               <button 
-                onClick={() => fetchReservations(1, 10)}
+                onClick={() => fetchReservations()}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
                 Retry
@@ -148,16 +128,17 @@ const page = () => {
   }
 
   return (
-    <MainLayout navigation={<p className='text-[20px] font-[400]'>Admins</p>} buttonText={"New Admin"} handleClick={() => router.push("/dashboard/admins/new")}>      
+    <MainLayout
+      navigation={<p className='text-[20px] font-[400]'>Employees</p>}
+      buttonText={"New Employee"}
+      handleClick={() => router.push("/dashboard/admins/new")}
+    >      
       <div className='p-4'>
         <GuestDetailsCard>
           <DynamicTable
             columns={columns}
             data={bookingData}
             actions={(row: TableData) => getActionsForStatus(row.status)}
-            paginationMode="server"
-            paginationInfo={paginationInfo}
-            onPageChange={handlePageChange}
             showCheckbox={true}
             showActions={true}
             onRowAction={handleRowAction}
@@ -167,7 +148,7 @@ const page = () => {
         </GuestDetailsCard>
       </div>
     </MainLayout>
-  )
-}
+  );
+};
 
-export default page;
+export default Page;

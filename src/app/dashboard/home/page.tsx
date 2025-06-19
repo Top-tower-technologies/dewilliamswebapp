@@ -35,7 +35,7 @@ const page = () => {
     fetchDashboardData();
   }, []);
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchTableData = async () => {
       try {
         const response = await axiosInstance.get("/staff/reservations?page=1&limit=8", {
@@ -56,7 +56,34 @@ const page = () => {
     fetchTableData();
   }, []);
 
- const columns = [
+const handleDownloadBtn = async () => {
+  try {
+    const response = await axiosInstance.get("/reservation/download", {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('AuthKey')}`
+      },
+      responseType: 'blob'  // 👈 VERY important
+    });
+
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reservations.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Download failed:', err);
+  }
+};
+
+
+  const columns = [
     { key: 'guest_id', header: 'Guest ID', cellClassName: 'font-medium' },
     { key: 'full_name', header: 'Full Name', },
     { key: 'booking_id', header: 'Booking ID', },
@@ -80,7 +107,7 @@ const page = () => {
   ];
 
   return (
-    <MainLayout buttonText={"Download data"}>
+    <MainLayout buttonText={"Download data"} handleClick={handleDownloadBtn}>
       <section className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <DashboardCard
           title="Total Reservations"
@@ -112,17 +139,17 @@ const page = () => {
         />
       </section>
 
-    <div className="p-6">
-      <GuestDetailsCard>
+      <div className="p-6">
+        <GuestDetailsCard>
 
-        <DynamicTable
-          columns={columns} // TODO: Replace with actual column definitions
-          data={tableData}    // TODO: Replace with actual data array
-          showCheckbox={true}
-          itemsPerPage={10}
-        />
-      </GuestDetailsCard>
-    </div>
+          <DynamicTable
+            columns={columns} // TODO: Replace with actual column definitions
+            data={tableData}    // TODO: Replace with actual data array
+            showCheckbox={true}
+            itemsPerPage={10}
+          />
+        </GuestDetailsCard>
+      </div>
 
     </MainLayout>
   );
