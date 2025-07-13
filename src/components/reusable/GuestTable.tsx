@@ -76,31 +76,50 @@ export function DynamicTable({
 }: DynamicTableProps) {
   const [clientCurrentPage, setClientCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterValue, setFilterValue] = useState('All');
 
   useEffect(() => {
     setSelectedRows(new Set());
   }, [data]);
 
-  // =======================
-  // PAGINATION LOGIC
-  // =======================
+  const applySearchAndFilter = () => {
+    let filtered = [...data];
+    if (searchQuery.trim() !== '') {
+      const lowerSearch = searchQuery.toLowerCase();
+      filtered = filtered.filter((item) =>
+        columns.some((col) => {
+          const val = String(item[col.key] ?? '').toLowerCase();
+          return val.includes(lowerSearch);
+        })
+      );
+    }
+    if (filterValue === 'Today') {
+      const today = new Date().toISOString().split('T')[0];
+      filtered = filtered.filter((item) => item.issueDate?.startsWith(today));
+    }
+    return filtered;
+  };
+
+  const filteredData = applySearchAndFilter();
+
   const getCurrentPageData = () => {
     if (paginationMode === 'client') {
       const start = (clientCurrentPage - 1) * itemsPerPage;
-      return data.slice(start, start + itemsPerPage);
+      return filteredData.slice(start, start + itemsPerPage);
     }
-    return data;
+    return filteredData;
   };
 
   const getPaginationData = (): PaginationInfo | null => {
     if (paginationMode === 'server' && paginationInfo) return paginationInfo;
 
     if (paginationMode === 'client') {
-      const totalPages = Math.ceil(data.length / itemsPerPage);
+      const totalPages = Math.ceil(filteredData.length / itemsPerPage);
       return {
         currentPage: clientCurrentPage,
         totalPages,
-        totalItems: data.length,
+        totalItems: filteredData.length,
         itemsPerPage,
       };
     }
@@ -116,9 +135,6 @@ export function DynamicTable({
     }
   };
 
-  // =======================
-  // ROW SELECTION
-  // =======================
   const toggleRowSelection = (index: number) => {
     const newSet = new Set(selectedRows);
     newSet.has(index) ? newSet.delete(index) : newSet.add(index);
@@ -130,23 +146,16 @@ export function DynamicTable({
     setSelectedRows(allSelected ? new Set() : new Set(currentData.map((_, i) => i)));
   };
 
-  // =======================
-  // ACTION LOGIC
-  // =======================
   const getActionsForRow = (item: any): ActionConfig[] => {
     return typeof actions === 'function' ? actions(item) : actions;
   };
 
-  // =======================
-  // CELL RENDERING
-  // =======================
   const defaultRenderCell = (item: any, column: ColumnConfig) => {
     if (column.type === 'badge') {
       const allowedVariants = ["outline", "default", "secondary", "destructive"] as const;
       const variant = allowedVariants.includes(column.badgeVariant?.(item[column.key]) as any)
         ? (column.badgeVariant?.(item[column.key]) as typeof allowedVariants[number])
         : "outline";
-
       const className = column.badgeClassName?.(item[column.key]) || "";
       return (
         <Badge variant={variant} className={className}>
@@ -158,16 +167,11 @@ export function DynamicTable({
   };
 
   const cellRenderer = renderCell || defaultRenderCell;
-
   const currentData = getCurrentPageData();
   const pagination = getPaginationData();
 
-  // =======================
-  // PAGINATION BUTTONS
-  // =======================
   const generatePaginationButtons = () => {
     if (!pagination || pagination.totalPages <= 1) return [];
-
     const { currentPage, totalPages } = pagination;
     const buttons = [];
     const maxVisible = 5;
@@ -191,16 +195,30 @@ export function DynamicTable({
         )
       );
     }
-
     return buttons;
   };
 
-  // =======================
-  // RENDER
-  // =======================
   return (
     <div className="space-y-4">
-      {title && <h2 className="text-2xl font-bold">{title}</h2>}
+      {/* {title && <h2 className="text-2xl font-bold">{title}</h2>} */}
+
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search..."
+          className="border px-3 py-2 rounded w-full max-w-sm"
+        />
+        <select
+          value={filterValue}
+          onChange={(e) => setFilterValue(e.target.value)}
+          className="border px-3 py-2 rounded"
+        >
+          <option value="All">All</option>
+          <option value="Today">Today</option>
+        </select>
+      </div>
 
       <div className="relative">
         {loading && (
