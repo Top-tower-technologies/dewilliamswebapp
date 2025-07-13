@@ -117,7 +117,7 @@ const NewBookingPage = () => {
                 requestBody
             );
 
-            console.log("Available rooms response:", response.data);
+            // console.log("Available rooms response:", response.data);
             setRooms(response.data.data || []);
 
             // Reset selected room if it's no longer available
@@ -208,7 +208,7 @@ const NewBookingPage = () => {
             setPaymentModalOpen(true)
             showToast("Booking created successfully!", "success");
             setPaymentDetails(response.data.data)
-            console.log("Booking response:", response.data.data);
+            // console.log("Booking response:", response.data.data);
 
         } catch (error: any) {
             console.error("Error creating booking:", error);
@@ -626,7 +626,7 @@ const NewBookingPage = () => {
                 amount={paymentDetails?.total || 0}
                 guestName={paymentDetails?.guest?.name || ""}
                 onPaymentComplete={() => {
-                    console.log("Payment marked as complete");
+                    // console.log("Payment marked as complete");
                     router.push('/dashboard/bookings')
                 }}
             />

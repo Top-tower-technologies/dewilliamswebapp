@@ -156,16 +156,16 @@ const page = () => {
   };
 
   // Fetch reservations data
-  const fetchReservations = async (page: number = 1, limit: number = 10) => {
+  const fetchReservations = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await axiosInstance.get(`/staff/reservations?page=${page}&limit=${limit}`, {
+      const response = await axiosInstance.get(`/staff/reservations?page=1&limit=8`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
 
-      console.log(response.data);
+      // console.log(response.data);
 
       if (response.data.success && response.data.data) {
         const transformedData = transformApiData(response.data.data.data);
@@ -190,8 +190,8 @@ const page = () => {
   };
 
   // Handle page changes from the table
-  const handlePageChange = (page: number) => {
-    fetchReservations(page, paginationInfo.itemsPerPage);
+  const handlePageChange = () => {
+    fetchReservations();
   };
 
   // Action Functions
@@ -203,8 +203,8 @@ const page = () => {
       });
 
       if (response.data.success) {
-        console.log('Booking confirmed successfully');
-        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
+        // console.log('Booking confirmed successfully');
+        await fetchReservations();
         setConfirmModalOpen(false);
         setSelectedBooking(null);
       } else {
@@ -226,8 +226,8 @@ const page = () => {
       });
 
       if (response.data.success) {
-        console.log('Booking cancelled successfully');
-        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
+        // console.log('Booking cancelled successfully');
+        await fetchReservations();
         setCancelModalOpen(false);
         setSelectedBooking(null);
       } else {
@@ -249,8 +249,8 @@ const page = () => {
       });
 
       if (response.data.success) {
-        console.log('Guest checked out successfully');
-        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
+        // console.log('Guest checked out successfully');
+        await fetchReservations();
         setCheckoutModalOpen(false);
         setSelectedBooking(null);
       } else {
@@ -266,12 +266,12 @@ const page = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchReservations(1, 10); // Start with page 1
+    fetchReservations(); // Start with page 1
   }, []);
 
   // Handle row actions
   const handleRowAction = async (actionKey: string, item: TableData, index: number) => {
-    console.log(`Action: ${actionKey}`, item);
+    // console.log(`Action: ${actionKey}`, item);
 
     setSelectedBooking(item);
 
@@ -293,12 +293,12 @@ const page = () => {
         break;
 
       case 'details':
-        console.log(`Viewing details for ${item.name}`);
+        // console.log(`Viewing details for ${item.name}`);
         router.push(`/dashboard/bookings/${item.id}`);
         break;
 
       default:
-        console.log(`Unknown action: ${actionKey}`);
+        // console.log(`Unknown action: ${actionKey}`);
         break;
     }
   };
@@ -359,7 +359,7 @@ const page = () => {
               </div>
               <p className="text-red-600 mb-4">Error: {error}</p>
               <button
-                onClick={() => fetchReservations(1, 10)}
+                onClick={() => fetchReservations()}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
                 Retry
@@ -379,7 +379,6 @@ const page = () => {
             columns={columns}
             data={bookingData}
             actions={(row: TableData) => getActionsForStatus(row.status)}
-            paginationMode="server"
             paginationInfo={paginationInfo}
             onPageChange={handlePageChange}
             showCheckbox={true}
@@ -387,6 +386,7 @@ const page = () => {
             onRowAction={handleRowAction}
             renderCell={renderCell}
             loading={loading}
+            itemsPerPage={10}
           />
         </GuestDetailsCard>
 

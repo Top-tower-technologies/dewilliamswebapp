@@ -1,20 +1,21 @@
-// ========================================
-// CORE DYNAMIC TABLE COMPONENT WITH SERVER-SIDE PAGINATION
-// ========================================
+"use client";
 
-"use client"
-import { useState, useEffect } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React, { useState, useEffect } from "react";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { PaginationButton } from "./PaginationButton";
 
-/**
- * Core reusable table component with dynamic configuration and pagination support
- */
+// =======================
+// TYPES
+// =======================
 type ColumnConfig = {
   key: string;
   header: string;
@@ -44,25 +45,24 @@ type DynamicTableProps = {
   columns: ColumnConfig[];
   data: any[];
   actions?: ActionConfig[] | ((item: any) => ActionConfig[]);
-  
-  // Pagination props
   paginationMode?: 'client' | 'server' | 'none';
   itemsPerPage?: number;
-  paginationInfo?: PaginationInfo | any;
+  paginationInfo?: PaginationInfo;
   onPageChange?: (page: number) => void;
-  
-  // Other props
   showCheckbox?: boolean;
   showActions?: boolean;
   onRowAction?: (actionKey: string, item: any, index: number) => void;
-  renderCell?: (item: any, column: ColumnConfig) => React.ReactNode ;
+  renderCell?: (item: any, column: ColumnConfig) => React.ReactNode;
   loading?: boolean;
 };
 
-export function DynamicTable({ 
+// =======================
+// COMPONENT
+// =======================
+export function DynamicTable({
   title,
-  columns, 
-  data, 
+  columns,
+  data,
   actions = [],
   paginationMode = 'client',
   itemsPerPage = 8,
@@ -72,98 +72,81 @@ export function DynamicTable({
   showActions = true,
   onRowAction,
   renderCell,
-  loading = false
+  loading = false,
 }: DynamicTableProps) {
-  // Client-side pagination state
   const [clientCurrentPage, setClientCurrentPage] = useState(1);
-  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
-  // Reset selected rows when data changes
   useEffect(() => {
     setSelectedRows(new Set());
   }, [data]);
 
-  // ========================================
+  // =======================
   // PAGINATION LOGIC
-  // ========================================
+  // =======================
   const getCurrentPageData = () => {
     if (paginationMode === 'client') {
-      const startIndex = (clientCurrentPage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      return data.slice(startIndex, endIndex);
+      const start = (clientCurrentPage - 1) * itemsPerPage;
+      return data.slice(start, start + itemsPerPage);
     }
-    // For server-side pagination or no pagination, return all data
     return data;
   };
 
-  const getPaginationData = () => {
-    if (paginationMode === 'server' && paginationInfo) {
-      return paginationInfo;
-    }
-    
+  const getPaginationData = (): PaginationInfo | null => {
+    if (paginationMode === 'server' && paginationInfo) return paginationInfo;
+
     if (paginationMode === 'client') {
+      const totalPages = Math.ceil(data.length / itemsPerPage);
       return {
         currentPage: clientCurrentPage,
-        totalPages: Math.ceil(data.length / itemsPerPage),
+        totalPages,
         totalItems: data.length,
-        itemsPerPage
+        itemsPerPage,
       };
     }
-    
-    // No pagination
+
     return null;
   };
 
   const handlePageChange = (page: number) => {
     if (paginationMode === 'client') {
       setClientCurrentPage(page);
-    } else if (paginationMode === 'server' && onPageChange) {
-      onPageChange(page);
+    } else if (paginationMode === 'server') {
+      onPageChange?.(page);
     }
   };
 
-  // ========================================
-  // ROW SELECTION LOGIC
-  // ========================================
-  const currentData = getCurrentPageData();
-  const pagination = getPaginationData();
-
+  // =======================
+  // ROW SELECTION
+  // =======================
   const toggleRowSelection = (index: number) => {
-    const newSelected = new Set(selectedRows);
-    if (newSelected.has(index)) {
-      newSelected.delete(index);
-    } else {
-      newSelected.add(index);
-    }
-    setSelectedRows(newSelected);
+    const newSet = new Set(selectedRows);
+    newSet.has(index) ? newSet.delete(index) : newSet.add(index);
+    setSelectedRows(newSet);
   };
 
   const toggleAllSelection = () => {
-    if (selectedRows.size === currentData.length) {
-      setSelectedRows(new Set());
-    } else {
-      setSelectedRows(new Set(currentData.map((_, index) => index)));
-    }
+    const allSelected = selectedRows.size === currentData.length;
+    setSelectedRows(allSelected ? new Set() : new Set(currentData.map((_, i) => i)));
   };
 
-  // ========================================
-  // ACTION RESOLUTION LOGIC
-  // ========================================
+  // =======================
+  // ACTION LOGIC
+  // =======================
   const getActionsForRow = (item: any): ActionConfig[] => {
-    if (typeof actions === 'function') {
-      return actions(item);
-    }
-    return Array.isArray(actions) ? actions : [];
+    return typeof actions === 'function' ? actions(item) : actions;
   };
 
-  // ========================================
-  // CELL RENDERING LOGIC
-  // ========================================
+  // =======================
+  // CELL RENDERING
+  // =======================
   const defaultRenderCell = (item: any, column: ColumnConfig) => {
     if (column.type === 'badge') {
       const allowedVariants = ["outline", "default", "secondary", "destructive"] as const;
-      const variantValue = column.badgeVariant?.(item[column.key]);
-      const variant = allowedVariants.includes(variantValue as any) ? variantValue as typeof allowedVariants[number] : "outline";
+      const variant = allowedVariants.includes(column.badgeVariant?.(item[column.key]) as any)
+        ? (column.badgeVariant?.(item[column.key]) as typeof allowedVariants[number])
+        : "outline";
+
       const className = column.badgeClassName?.(item[column.key]) || "";
       return (
         <Badge variant={variant} className={className}>
@@ -176,98 +159,80 @@ export function DynamicTable({
 
   const cellRenderer = renderCell || defaultRenderCell;
 
-  // ========================================
-  // PAGINATION BUTTONS GENERATION
-  // ========================================
+  const currentData = getCurrentPageData();
+  const pagination = getPaginationData();
+
+  // =======================
+  // PAGINATION BUTTONS
+  // =======================
   const generatePaginationButtons = () => {
     if (!pagination || pagination.totalPages <= 1) return [];
-    
+
+    const { currentPage, totalPages } = pagination;
     const buttons = [];
     const maxVisible = 5;
-    const { currentPage, totalPages } = pagination;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
         buttons.push(
-          <PaginationButton
-            key={i}
-            number={i}
-            currentPage={currentPage}
-            onClick={() => handlePageChange(i)}
-          />
+          <PaginationButton key={i} number={i} currentPage={currentPage} onClick={() => handlePageChange(i)} />
         );
       }
     } else {
-      // Show first few pages, ellipsis, and last few pages
-      for (let i = 1; i <= Math.min(3, totalPages); i++) {
+      [1, 2, 3].forEach(i =>
         buttons.push(
-          <PaginationButton
-            key={i}
-            number={i}
-            currentPage={currentPage}
-            onClick={() => handlePageChange(i)}
-          />
-        );
-      }
-      
-      if (totalPages > 6) {
-        buttons.push(<div key="ellipsis" className="px-2">...</div>);
-      }
-      
-      for (let i = Math.max(totalPages - 2, 4); i <= totalPages; i++) {
+          <PaginationButton key={i} number={i} currentPage={currentPage} onClick={() => handlePageChange(i)} />
+        )
+      );
+      buttons.push(<div key="ellipsis" className="px-2">...</div>);
+      [totalPages - 2, totalPages - 1, totalPages].forEach(i =>
         buttons.push(
-          <PaginationButton
-            key={i}
-            number={i}
-            currentPage={currentPage}
-            onClick={() => handlePageChange(i)}
-          />
-        );
-      }
+          <PaginationButton key={i} number={i} currentPage={currentPage} onClick={() => handlePageChange(i)} />
+        )
+      );
     }
-    
+
     return buttons;
   };
 
-  // ========================================
-  // MAIN TABLE RENDER
-  // ========================================
+  // =======================
+  // RENDER
+  // =======================
   return (
     <div className="space-y-4">
       {title && <h2 className="text-2xl font-bold">{title}</h2>}
-      
+
       <div className="relative">
         {loading && (
           <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
           </div>
         )}
-        
+
         <Table>
           <TableHeader>
             <TableRow>
               {showCheckbox && (
                 <TableHead className="w-12">
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedRows.size === currentData.length && currentData.length > 0}
                     onCheckedChange={toggleAllSelection}
                   />
                 </TableHead>
               )}
-              {columns.map((column, index) => (
-                <TableHead key={index} className={column.className}>
-                  {column.header}
+              {columns.map((col, i) => (
+                <TableHead key={i} className={col.className}>
+                  {col.header}
                 </TableHead>
               ))}
-              {showActions && (
-                <TableHead className="w-12"></TableHead>
-              )}
+              {showActions && <TableHead className="w-12" />}
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {currentData.length === 0 ? (
               <TableRow>
-                <TableCell 
+                <TableCell
                   colSpan={columns.length + (showCheckbox ? 1 : 0) + (showActions ? 1 : 0)}
                   className="text-center py-8 text-gray-500"
                 >
@@ -275,16 +240,15 @@ export function DynamicTable({
                 </TableCell>
               </TableRow>
             ) : (
-              currentData.map((item, index) => {
+              currentData.map((item, rowIndex) => {
                 const rowActions = getActionsForRow(item);
-                
                 return (
-                  <TableRow key={index}>
+                  <TableRow key={rowIndex}>
                     {showCheckbox && (
                       <TableCell>
-                        <Checkbox 
-                          checked={selectedRows.has(index)}
-                          onCheckedChange={() => toggleRowSelection(index)}
+                        <Checkbox
+                          checked={selectedRows.has(rowIndex)}
+                          onCheckedChange={() => toggleRowSelection(rowIndex)}
                         />
                       </TableCell>
                     )}
@@ -302,13 +266,13 @@ export function DynamicTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {rowActions.map((action, actionIndex) => (
-                              <DropdownMenuItem 
-                                key={actionIndex}
-                                onClick={() => onRowAction?.(action.key, item, index)}
+                            {rowActions.map((action, i) => (
+                              <DropdownMenuItem
+                                key={i}
+                                onClick={() => onRowAction?.(action.key, item, rowIndex)}
                                 className="flex items-center gap-2"
                               >
-                                {action.icon && action.icon}
+                                {action.icon}
                                 {action.label}
                               </DropdownMenuItem>
                             ))}
@@ -324,29 +288,26 @@ export function DynamicTable({
         </Table>
       </div>
 
-      {/* Pagination Controls */}
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             Page {pagination.currentPage} of {pagination.totalPages}
-            {paginationMode === 'server' && (
-              <span className="ml-2">
-                ({pagination.totalItems} total items)
-              </span>
+            {paginationMode === "server" && (
+              <span className="ml-2">({pagination.totalItems} total items)</span>
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               disabled={pagination.currentPage === 1 || loading}
               onClick={() => handlePageChange(pagination.currentPage - 1)}
             >
               Previous
             </Button>
             {generatePaginationButtons()}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               disabled={pagination.currentPage === pagination.totalPages || loading}
               onClick={() => handlePageChange(pagination.currentPage + 1)}

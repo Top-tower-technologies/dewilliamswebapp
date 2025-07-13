@@ -73,7 +73,7 @@ export default function Dashboard() {
       const response = await axiosInstance.get(`/staff/services/room_service/list/view`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` },
       });
-      console.log(response.data)
+      // console.log(response.data)
       
       // Map room statuses to simplified ones
       const roomsWithSimplifiedStatus = response.data.data.map((room: any) => ({
@@ -150,7 +150,7 @@ export default function Dashboard() {
       });
       
       if (response.data.success) {
-        console.log('Room released successfully');
+        // console.log('Room released successfully');
         await fetchRooms();
         setReleaseModalOpen(false);
         setSelectedRoom(null);
@@ -211,7 +211,7 @@ export default function Dashboard() {
   ];
 
   const handleRowAction = (actionKey: string, item: RoomData, index: number) => {
-    console.log(`Action: ${actionKey}`, item);
+    // console.log(`Action: ${actionKey}`, item);
     
     setSelectedRoom(item);
     

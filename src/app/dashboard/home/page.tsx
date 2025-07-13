@@ -25,7 +25,7 @@ const page = () => {
         const response = await axiosInstance.get("/staff/dashboard",
           { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } }
         );
-        console.log(response.data)
+        // console.log(response.data)
         setDashboardData(response.data);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -46,7 +46,7 @@ const page = () => {
           ...guest,
           id: guest.id ? guest.id.slice(0, 10) : guest.id,
         }));
-        console.log("Fetched guests:", guests);
+        // console.log("Fetched guests:", guests);
         setTableData(guests);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);

@@ -57,7 +57,7 @@ export function FilterModal({ open, onClose }: { open: boolean; onClose: () => a
       selectedStatuses,
       roomNumbers,
     };
-    console.log('Apply filters:', filters);
+    // console.log('Apply filters:', filters);
     onClose();
   };
 
