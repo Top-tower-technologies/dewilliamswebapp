@@ -11,7 +11,7 @@ interface PaymentModalProps {
   email?: string;
   amount?: string;
   guestName?: string;
-  handleOpenPaymentForm: () => void;
+  handleOpenPaymentForm?: () => void;
   onPaymentComplete?: () => void;
 }
 
