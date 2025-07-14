@@ -55,6 +55,7 @@ const NewBookingPage = () => {
     const [rooms, setRooms] = useState<any>([]);
     const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
     const [transactionRef, setTransactionRef] = useState<string>("");
+    const [serviceId, setServiceId] = useState<number>(0);
     const [toast, setToast] = useState<ToastState>({
         show: false,
         message: "",
@@ -89,7 +90,7 @@ const NewBookingPage = () => {
         reference: transactionRef,
         email: "",
         description: "",
-        service_id: "",
+        service_id: serviceId,
         notes: "",
     });
 
@@ -229,8 +230,9 @@ const NewBookingPage = () => {
             setPaymentModalOpen(true)
             showToast("Booking created successfully!", "success");
             setPaymentDetails(response.data.data)
-            // console.log("Booking response:", response.data.data);
+            // console.log("Booking response:", response.data.data.service_id);
             setTransactionRef(response.data.data.transaction_ref || "")
+            setServiceId(response.data.data.service_id || 0);
 
         } catch (error: any) {
             console.error("Error creating booking:", error);
@@ -657,7 +659,7 @@ const NewBookingPage = () => {
                         <Input name="reference" placeholder="Reference (e.g., TX_...)" onChange={handleChange} value={transactionRef} />
                         <Input name="email" placeholder="Customer Email" onChange={handleChange} value={formData.email} />
                         <Input name="description" placeholder="Description" onChange={handleChange} value={formData.description} />
-                        <Input name="service_id" placeholder="Service ID" onChange={handleChange} value={formData.service_id} />
+                        <Input name="service_id" placeholder="Service ID" onChange={handleChange} value={serviceId} />
                         <Textarea name="notes" placeholder="Notes (optional)" onChange={handleChange} value={formData.notes} />
                     </div>
 
