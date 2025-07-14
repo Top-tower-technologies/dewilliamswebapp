@@ -95,9 +95,11 @@ export function DynamicTable({
       );
     }
     if (filterValue === 'Today') {
-      const today = new Date().toISOString().split('T')[0];
-      filtered = filtered.filter((item) => item.issueDate?.startsWith(today));
+      const today = new Date();
+      const formattedToday = today.toLocaleDateString('en-CA'); // → 'YYYY-MM-DD'
+      filtered = filtered.filter((item) => item.issueDate?.includes(formattedToday));
     }
+
     return filtered;
   };
 

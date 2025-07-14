@@ -37,7 +37,7 @@ export function AppSidebar() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const userRole = localStorage.getItem("UserRole");
-      setIsSuperAdmin(userRole === "super_admin");
+      setIsSuperAdmin(userRole === "super_admin" || userRole === "admin");
     }
   }, []);
 
