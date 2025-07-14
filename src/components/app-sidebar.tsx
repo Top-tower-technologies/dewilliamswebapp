@@ -11,6 +11,8 @@ import {
   DoorOpen,
   Power,
   UserCircle,
+  Banknote,
+  PenIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -62,7 +64,10 @@ export function AppSidebar() {
         { title: "Guests", url: "/dashboard/guests", icon: UserRound },
         { title: "Reservation", url: "/dashboard/reservation", icon: Mail },
         ...(isSuperAdmin
-          ? [{ title: "Employees", url: "/dashboard/employees", icon: UserCircle }]
+          ? [
+            { title: "Employees", url: "/dashboard/employees", icon: UserCircle },
+            { title: "Account Officer", url: "/dashboard/account-officer", icon: PenIcon },
+          ]
           : []),
       ],
     },
