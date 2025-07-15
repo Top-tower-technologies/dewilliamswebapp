@@ -5,6 +5,7 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { DynamicTable } from "@/components/reusable/GuestTable";
+import axiosInstance from "@/api/axiosInstance";
 
 interface TableData {
     id: string;
@@ -14,7 +15,7 @@ interface TableData {
 }
 
 const columns = [
-    { key: "id", header: "Transaction ID" },
+    { key: "reference", header: "Transaction Ref" },
     { key: "amount", header: "Amount (₦)" },
     { key: "status", header: "Status" }
 ];
@@ -32,8 +33,9 @@ export default function ReconciliationPage() {
     const fetchPendingTransactions = async () => {
         setLoading(true);
         try {
-            const res = await axios.get("/payment/physical/pending-reconciliation", { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } });
-            const data = res.data?.data?.transactions?.pending_reconciliation || [];
+            const res = await axiosInstance.get("/payment/physical/pending-reconciliation", { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } });
+            // console.log("Response:", res.data);
+            const data = res.data?.data?.transactions || [];
             setBookingData(data);
             setPaginationInfo({ page: 1, total: data.length });
         } catch (err) {
@@ -47,7 +49,7 @@ export default function ReconciliationPage() {
         if (selectedRows.length === 0) return;
 
         try {
-            await axios.post("/payment/physical/reconcile", {
+            await axiosInstance.post("/payment/physical/reconcile", {
                 transaction_ids: selectedRows,
                 reconciliation_notes: "Immediate reconciliation - amount verified",
             },
@@ -99,7 +101,7 @@ export default function ReconciliationPage() {
                 <DynamicTable
                     columns={columns}
                     data={bookingData}
-                    actions={(row: TableData) => getActionsForStatus(row.status)}
+                    // actions={(row: TableData) => getActionsForStatus(row.status)}
                     onPageChange={handlePageChange}
                     showCheckbox={true}
                     showActions={true}
