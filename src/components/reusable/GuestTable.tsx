@@ -54,6 +54,9 @@ type DynamicTableProps = {
   onRowAction?: (actionKey: string, item: any, index: number) => void;
   renderCell?: (item: any, column: ColumnConfig) => React.ReactNode;
   loading?: boolean;
+  selectedRows?: Set<number>;
+  onSelectionChange?: (selectedRows: Set<number>) => void;
+  onSelectRows?: (rowIds: string[]) => void;
 };
 
 // =======================
@@ -73,15 +76,34 @@ export function DynamicTable({
   onRowAction,
   renderCell,
   loading = false,
+  selectedRows: externalSelectedRows,
+  onSelectionChange,
 }: DynamicTableProps) {
   const [clientCurrentPage, setClientCurrentPage] = useState(1);
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(externalSelectedRows || new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [filterValue, setFilterValue] = useState('All');
 
+  // Update internal state when external state changes
   useEffect(() => {
-    setSelectedRows(new Set());
-  }, [data]);
+    if (externalSelectedRows) {
+      setSelectedRows(externalSelectedRows);
+    }
+  }, [externalSelectedRows]);
+
+  // const toggleRowSelection = (index: number) => {
+  //   const newSet = new Set(selectedRows);
+  //   newSet.has(index) ? newSet.delete(index) : newSet.add(index);
+  //   setSelectedRows(newSet);
+  //   onSelectionChange?.(newSet);
+  // };
+
+  // const toggleAllSelection = () => {
+  //   const allSelected = selectedRows.size === currentData.length;
+  //   const newSet = allSelected ? new Set() : new Set(currentData.map((_, i) => i));
+  //   setSelectedRows(newSet);
+  //   onSelectionChange?.(newSet);
+  // };
 
   const applySearchAndFilter = () => {
     let filtered = [...data];

@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { DynamicTable } from "@/components/reusable/GuestTable";
@@ -17,7 +16,7 @@ interface TableData {
 const columns = [
     { key: "reference", header: "Transaction Ref" },
     { key: "amount", header: "Amount (₦)" },
-    { key: "status", header: "Status" }
+    { key: "status", header: "Status" },
 ];
 
 export default function ReconciliationPage() {
@@ -26,16 +25,15 @@ export default function ReconciliationPage() {
     const [paginationInfo, setPaginationInfo] = useState({ page: 1, total: 0 });
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        fetchPendingTransactions();
-    }, []);
-
-    const fetchPendingTransactions = async () => {
+    const fetchPendingTransactions = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axiosInstance.get("/payment/physical/pending-reconciliation", { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } });
-            // console.log("Response:", res.data);
+            const res = await axiosInstance.get("/payment/physical/pending-reconciliation", {
+                headers: { Authorization: `Bearer ${localStorage.getItem("AuthKey")}` },
+            });
+
             const data = res.data?.data?.transactions || [];
+            console.log("Fetched pending transactions:", data);
             setBookingData(data);
             setPaginationInfo({ page: 1, total: data.length });
         } catch (err) {
@@ -43,49 +41,78 @@ export default function ReconciliationPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleReconcile = async () => {
+    useEffect(() => {
+        fetchPendingTransactions();
+    }, [fetchPendingTransactions]);
+
+    // 🧠 Reconcile Selected Rows (Bulk)
+    const handleBulkReconcile = async () => {
         if (selectedRows.length === 0) return;
 
         try {
-            await axiosInstance.post("/payment/physical/reconcile", {
-                transaction_ids: selectedRows,
-                reconciliation_notes: "Immediate reconciliation - amount verified",
-            },
-                { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } });
-            fetchPendingTransactions();
+            await axiosInstance.post(
+                "/payment/physical/reconcile",
+                {
+                    transaction_ids: selectedRows,
+                    reconciliation_notes: "Immediate reconciliation - amount verified",
+                },
+                {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("AuthKey")}` },
+                }
+            );
+
+            await fetchPendingTransactions();
             setSelectedRows([]);
         } catch (err) {
-            console.error("Reconciliation error:", err);
+            console.error("Bulk reconciliation error:", err);
         }
     };
 
-    const handlePageChange = (page: number) => {
-        setPaginationInfo((prev) => ({ ...prev, page }));
+    // 🧠 Handle checkbox selections
+    const handleRowSelection = (rowIds: string[]) => {
+        setSelectedRows(rowIds);
     };
 
-    const handleRowAction = (action: string, row: TableData) => {
+    // 🧠 Optional: Per-row Reconciliation
+    const handleRowAction = async (action: string, row: TableData) => {
         if (action === "reconcile") {
-            setSelectedRows((prev) => [...prev, row.id]);
+            try {
+                await axiosInstance.post(
+                    "/payment/physical/reconcile",
+                    {
+                        transaction_ids: [row.id],
+                        reconciliation_notes: "Single reconciliation - verified",
+                    },
+                    {
+                        headers: { Authorization: `Bearer ${localStorage.getItem("AuthKey")}` },
+                    }
+                );
+
+                await fetchPendingTransactions();
+            } catch (err) {
+                console.error("Single row reconciliation error:", err);
+            }
         }
     };
 
-    const getActionsForStatus = (status: string) => {
-        return [
-            {
-                key: "reconcile",
-                label: "Reconcile",
-                action: "reconcile",
-                disabled: status !== "pending",
-            },
-        ];
-    };
+    const getActionsForStatus = (status: string) => [
+        {
+            key: "reconcile",
+            label: "Reconcile",
+            action: "reconcile",
+            disabled: status !== "pending",
+        },
+    ];
 
-    const renderCell = (key: string, item: TableData) => {
+    const renderCell = (item: TableData, column: { key: string }) => {
+        const { key } = column;
+
         if (key === "amount") {
             return `₦${(item.amount / 100).toLocaleString()}`;
         }
+
         return item[key];
     };
 
@@ -94,22 +121,25 @@ export default function ReconciliationPage() {
             <GuestDetailsCard>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold">Pending Reconciliation</h2>
-                    <Button onClick={handleReconcile} disabled={selectedRows.length === 0}>
+                    {/* <Button
+                        onClick={handleBulkReconcile}
+                        disabled={selectedRows.length === 0}
+                    >
                         Reconcile Selected
-                    </Button>
+                    </Button> */}
                 </div>
                 <DynamicTable
                     columns={columns}
                     data={bookingData}
-                    // actions={(row: TableData) => getActionsForStatus(row.status)}
-                    onPageChange={handlePageChange}
+                    actions={(row: TableData) => getActionsForStatus(row.status)}
+                    // onPageChange={handlePageChange}
                     showCheckbox={true}
                     showActions={true}
                     onRowAction={handleRowAction}
-                    //   renderCell={renderCell}
+                    onSelectRows={handleRowSelection}
+                    renderCell={renderCell}
                     loading={loading}
                     itemsPerPage={10}
-                //   onSelectRows={(rows: string[]) => setSelectedRows(rows)}
                 />
             </GuestDetailsCard>
         </div>

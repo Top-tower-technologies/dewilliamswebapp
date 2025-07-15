@@ -99,6 +99,7 @@ const page = () => {
           case 'expired': return 'destructive';
           case 'checked_in': return 'default';
           case 'checked_out': return 'outline';
+          case 'pending': return 'secondary';
           default: return 'outline';
         }
       }
@@ -120,6 +121,12 @@ const page = () => {
         return [
           { key: 'checkin', label: 'Check In', icon: <LogIn size={16} />, variant: 'default' },
           { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
+        ];
+
+      case 'pending':
+        return [
+          { key: 'payment', label: 'Make Payment', icon: <CreditCard size={16} />, variant: 'default' },
+          // { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
         ];
 
       case 'deposited':
@@ -165,7 +172,7 @@ const page = () => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       });
 
-      // console.log(response.data);
+      console.log(response.data);
 
       if (response.data.success && response.data.data) {
         const transformedData = transformApiData(response.data.data.data);
