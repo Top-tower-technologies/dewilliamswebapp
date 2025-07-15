@@ -48,14 +48,47 @@ interface ToastState {
     type: "success" | "error" | "info" | "warning";
 }
 
+export const MessageDisplay = ({
+    message,
+    type,
+    isVisible,
+}: {
+    message: string;
+    type: "success" | "error";
+    isVisible: boolean;
+}) => {
+    if (!isVisible || !message) return null;
+
+    return (
+        <div
+            className={`text-sm font-medium mb-4 transition-all duration-300 w-full p-3 rounded-md ${type === "success"
+                ? "text-green-600 border border-green-200 bg-green-50"
+                : "text-red-500 border border-red-200 bg-red-50"
+                }`}
+        >
+            {message}
+        </div>
+    );
+};
+
 const NewBookingPage = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [roomsLoading, setRoomsLoading] = useState(false);
     const [rooms, setRooms] = useState<any>([]);
     const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
-    const [transactionRef, setTransactionRef] = useState<string>("");
-    const [serviceId, setServiceId] = useState<number>(0);
+    const [transactionRef, setTransactionRef] = useState<string>();
+    const [serviceId, setServiceId] = useState<number>();
+    const [totalAmount, setTotalAmount] = useState<number>();
+    const [message, setMessage] = useState<{
+        text: string;
+        type: "error" | "success";
+        isVisible: boolean;
+    }>({
+        text: "",
+        type: "error",
+        isVisible: false,
+    });
     const [toast, setToast] = useState<ToastState>({
         show: false,
         message: "",
@@ -83,14 +116,14 @@ const NewBookingPage = () => {
     });
 
     const [formData, setFormData] = useState({
-        amount: paymentDetails?.total,
+        amount: 0, // Initialize with 0 instead of undefined totalAmount
         payment_method: "pos",
         receipt_number: "",
         pos_terminal_id: "",
-        reference: transactionRef,
+        reference: "",
         email: "",
         description: "",
-        service_id: serviceId,
+        service_id: 0, // Initialize with 0 instead of undefined serviceId
         notes: "",
     });
 
@@ -230,9 +263,10 @@ const NewBookingPage = () => {
             setPaymentModalOpen(true)
             showToast("Booking created successfully!", "success");
             setPaymentDetails(response.data.data)
-            // console.log("Booking response:", response.data.data.service_id);
-            setTransactionRef(response.data.data.transaction_ref || "")
-            setServiceId(response.data.data.service_id || 0);
+            console.log("Booking response:", response.data.data);
+            setTransactionRef(response.data.data.transaction_ref)
+            setServiceId(response.data.data.service_id);
+            setTotalAmount(response.data.data.total);
 
         } catch (error: any) {
             console.error("Error creating booking:", error);
@@ -262,17 +296,43 @@ const NewBookingPage = () => {
     };
 
     const handleFormSubmit = async () => {
-        const response = await axiosInstance.post(
-            `/payment/physical/process`,
-            {
-                ...formData,
-                amount: parseFloat(formData.amount), // Ensure numeric value
-            },
-            {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-            }
-        );
-        console.log("Response:", response.data);
+        setLoading(true);
+        try {
+            const response = await axiosInstance.post(
+                `/payment/physical/process`,
+                {
+                    amount: totalAmount,
+                    payment_method: formData.payment_method,
+                    receipt_number: formData.receipt_number,
+                    pos_terminal_id: formData.pos_terminal_id,
+                    reference: transactionRef,
+                    email: formData.email,
+                    description: formData.description,
+                    service_id: serviceId,
+                    notes: formData.notes,
+                },
+                {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+                }
+            );
+            setMessage({
+                text: "success",
+                type: "success",
+                isVisible: true,
+            });
+            setPosDialogOpen(false);
+            // console.log("Response:", response.data);
+        } catch (error: any) {
+            setMessage({
+                text: error.response?.data?.message || "An error occurred while processing the payment.",
+                type: "error",
+                isVisible: true,
+            });
+            console.error(error)
+        } finally {
+            setLoading(false);
+        }
+
         // handle success or error here
     };
     return (
@@ -653,7 +713,12 @@ const NewBookingPage = () => {
                     </DialogHeader>
 
                     <div className="space-y-4">
-                        <Input name="amount" placeholder="Amount" onChange={handleChange} value={paymentDetails?.total} />
+                        <MessageDisplay
+                            message={message.text}
+                            type={message.type}
+                            isVisible={message.isVisible}
+                        />
+                        <Input name="amount" type='number' placeholder="Amount" onChange={handleChange} value={totalAmount} />
                         <Input name="receipt_number" placeholder="Receipt Number" onChange={handleChange} value={formData.receipt_number} />
                         <Input name="pos_terminal_id" placeholder="POS Terminal ID" onChange={handleChange} value={formData.pos_terminal_id} />
                         <Input name="reference" placeholder="Reference (e.g., TX_...)" onChange={handleChange} value={transactionRef} />
@@ -663,8 +728,15 @@ const NewBookingPage = () => {
                         <Textarea name="notes" placeholder="Notes (optional)" onChange={handleChange} value={formData.notes} />
                     </div>
 
-                    <Button onClick={handleFormSubmit} className="mt-4 w-full">
-                        Submit Payment
+                    <Button onClick={() => handleFormSubmit()} className="mt-4 w-full" disabled={loading}>
+                        {loading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                Processing...
+                            </div>
+                        ) : (
+                            "Submit Payment"
+                        )}
                     </Button>
                 </DialogContent>
             </Dialog>
