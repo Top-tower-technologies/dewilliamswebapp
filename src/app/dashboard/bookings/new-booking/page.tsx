@@ -48,7 +48,7 @@ interface ToastState {
     type: "success" | "error" | "info" | "warning";
 }
 
-export const MessageDisplay = ({
+const MessageDisplay = ({
     message,
     type,
     isVisible,
