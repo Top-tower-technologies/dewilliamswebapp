@@ -14,7 +14,12 @@ interface TableData {
 }
 
 const columns = [
+    // { key: "service_id", header: "Service ID" },
+    { key: "email", header: "Email" },
     { key: "reference", header: "Transaction Ref" },
+    { key: "payment_method", header: "Payment Method" },
+    { key: "receipt_number", header: "Receipt Number" },
+    { key: "pos_terminal_id", header: "Terminal ID" },
     { key: "amount", header: "Amount (₦)" },
     { key: "status", header: "Status" },
 ];
@@ -110,7 +115,7 @@ export default function ReconciliationPage() {
         const { key } = column;
 
         if (key === "amount") {
-            return `₦${(item.amount / 100).toLocaleString()}`;
+            return `₦${(item.amount).toLocaleString()}`;
         }
 
         return item[key];

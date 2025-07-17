@@ -6,3 +6,7 @@ export function formatToNaira(amountInKobo: number): string {
     minimumFractionDigits: 2,
   }).format(naira);
 }
+
+export function parseCurrency(value: string): number {
+  return Number(value.replace(/[^0-9.-]+/g, ""));
+}

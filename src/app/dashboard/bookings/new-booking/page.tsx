@@ -47,6 +47,13 @@ interface ToastState {
     message: string;
     type: "success" | "error" | "info" | "warning";
 }
+type PosFormProps = {
+    totalAmount: number | undefined;
+    transactionRef: string | undefined;
+    serviceId: number | undefined;
+    posDialogOpen: boolean;
+    setPosDialogOpen: (open: boolean) => void;
+};
 
 const MessageDisplay = ({
     message,
@@ -71,6 +78,108 @@ const MessageDisplay = ({
     );
 };
 
+export const PosForm = ({ totalAmount, transactionRef, serviceId, posDialogOpen, setPosDialogOpen }: PosFormProps) => {
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        payment_method: '',
+        receipt_number: '',
+        pos_terminal_id: '',
+        email: '',
+        description: '',
+        notes: '',
+    });
+    const [message, setMessage] = useState({
+        message: "", // ✅ renamed
+        type: "error" as "success" | "error",
+        isVisible: false,
+    });
+    useEffect(() => {
+        if (message.isVisible) {
+            const timer = setTimeout(() => {
+                setMessage(prev => ({ ...prev, isVisible: false }));
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [message]);
+
+    const handleChange = (e: any) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleFormSubmit = async () => {
+        setLoading(true);
+        try {
+            const response = await axiosInstance.post(
+                `/payment/physical/process`,
+                {
+                    amount: totalAmount,
+                    payment_method: formData.payment_method,
+                    receipt_number: formData.receipt_number,
+                    pos_terminal_id: formData.pos_terminal_id,
+                    reference: transactionRef,
+                    email: formData.email,
+                    description: formData.description,
+                    service_id: serviceId,
+                    notes: formData.notes,
+                },
+                {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+                }
+            );
+            setMessage({ message: "Payment processed successfully.", type: "success", isVisible: true });
+            setFormData({ payment_method: '', receipt_number: '', pos_terminal_id: '', email: '', description: '', notes: '' });
+            setPosDialogOpen(false);
+        } catch (error: any) {
+            setMessage({
+                message: error.response?.data?.message || "An error occurred while processing the payment.",
+                type: "error",
+                isVisible: true,
+            });
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={posDialogOpen} onOpenChange={setPosDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Physical Payment Processing</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    <MessageDisplay
+                        message={message.message} // ✅ explicitly map the keys
+                        type={message.type}
+                        isVisible={message.isVisible}
+                    />
+                    <Input name="amount" type='number' readOnly value={totalAmount} />
+                    <Input name="receipt_number" placeholder="Receipt Number" onChange={handleChange} value={formData.receipt_number} />
+                    <Input name="pos_terminal_id" placeholder="POS Terminal ID" onChange={handleChange} value={formData.pos_terminal_id} />
+                    <Input name="reference" placeholder="Reference" readOnly value={transactionRef} />
+                    <Input name="email" placeholder="Customer Email" onChange={handleChange} value={formData.email} />
+                    <Input name="description" placeholder="Description" onChange={handleChange} value={formData.description} />
+                    <Input name="service_id" placeholder="Service ID" readOnly value={serviceId} />
+                    <Textarea name="notes" placeholder="Notes (optional)" onChange={handleChange} value={formData.notes} />
+                </div>
+
+                <Button onClick={handleFormSubmit} className="mt-4 w-full" disabled={loading}>
+                    {loading ? (
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Processing...
+                        </div>
+                    ) : (
+                        "Submit Payment"
+                    )}
+                </Button>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 const NewBookingPage = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -80,15 +189,7 @@ const NewBookingPage = () => {
     const [transactionRef, setTransactionRef] = useState<string>();
     const [serviceId, setServiceId] = useState<number>();
     const [totalAmount, setTotalAmount] = useState<number>();
-    const [message, setMessage] = useState<{
-        text: string;
-        type: "error" | "success";
-        isVisible: boolean;
-    }>({
-        text: "",
-        type: "error",
-        isVisible: false,
-    });
+
     const [toast, setToast] = useState<ToastState>({
         show: false,
         message: "",
@@ -115,22 +216,6 @@ const NewBookingPage = () => {
         address: '',
     });
 
-    const [formData, setFormData] = useState({
-        amount: 0, // Initialize with 0 instead of undefined totalAmount
-        payment_method: "pos",
-        receipt_number: "",
-        pos_terminal_id: "",
-        reference: "",
-        email: "",
-        description: "",
-        service_id: 0, // Initialize with 0 instead of undefined serviceId
-        notes: "",
-    });
-
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
 
     // Toast helper function
     const showToast = (message: string, type: "success" | "error" | "info" | "warning" = "success") => {
@@ -295,54 +380,9 @@ const NewBookingPage = () => {
         showToast("Form has been reset", "info");
     };
 
-    const handleFormSubmit = async () => {
-        setLoading(true);
-        try {
-            const response = await axiosInstance.post(
-                `/payment/physical/process`,
-                {
-                    amount: totalAmount,
-                    payment_method: formData.payment_method,
-                    receipt_number: formData.receipt_number,
-                    pos_terminal_id: formData.pos_terminal_id,
-                    reference: transactionRef,
-                    email: formData.email,
-                    description: formData.description,
-                    service_id: serviceId,
-                    notes: formData.notes,
-                },
-                {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-                }
-            );
-            setMessage({
-                text: "success",
-                type: "success",
-                isVisible: true,
-            });
-            setPosDialogOpen(false);
-            // console.log("Response:", response.data);
-        } catch (error: any) {
-            setMessage({
-                text: error.response?.data?.message || "An error occurred while processing the payment.",
-                type: "error",
-                isVisible: true,
-            });
-            console.error(error)
-        } finally {
-            setLoading(false);
-        }
 
-        // handle success or error here
-    };
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-amber-50">
-            {/* Toast Component - Always rendered but conditionally visible */}
-            {/* <Toast
-                message={toast.message}
-                type={toast.type}
-            /> */}
-
             <MainLayout
                 navigation={
                     <div className='flex justify-center gap-x-3 items-center backdrop-blur-sm bg-white/70 rounded-full px-6 py-2 shadow-sm border'>
@@ -702,44 +742,15 @@ const NewBookingPage = () => {
                         </CardContent>
                     </Card>
                 </div>
-
-
             </MainLayout>
 
-            <Dialog open={posDialogOpen} onOpenChange={setPosDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Physical Payment Processing</DialogTitle>
-                    </DialogHeader>
-
-                    <div className="space-y-4">
-                        <MessageDisplay
-                            message={message.text}
-                            type={message.type}
-                            isVisible={message.isVisible}
-                        />
-                        <Input name="amount" type='number' placeholder="Amount" onChange={handleChange} value={totalAmount} />
-                        <Input name="receipt_number" placeholder="Receipt Number" onChange={handleChange} value={formData.receipt_number} />
-                        <Input name="pos_terminal_id" placeholder="POS Terminal ID" onChange={handleChange} value={formData.pos_terminal_id} />
-                        <Input name="reference" placeholder="Reference (e.g., TX_...)" onChange={handleChange} value={transactionRef} />
-                        <Input name="email" placeholder="Customer Email" onChange={handleChange} value={formData.email} />
-                        <Input name="description" placeholder="Description" onChange={handleChange} value={formData.description} />
-                        <Input name="service_id" placeholder="Service ID" onChange={handleChange} value={serviceId} />
-                        <Textarea name="notes" placeholder="Notes (optional)" onChange={handleChange} value={formData.notes} />
-                    </div>
-
-                    <Button onClick={() => handleFormSubmit()} className="mt-4 w-full" disabled={loading}>
-                        {loading ? (
-                            <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                Processing...
-                            </div>
-                        ) : (
-                            "Submit Payment"
-                        )}
-                    </Button>
-                </DialogContent>
-            </Dialog>
+            <PosForm
+                posDialogOpen={posDialogOpen}
+                serviceId={serviceId}
+                setPosDialogOpen={setPosDialogOpen}
+                totalAmount={totalAmount}
+                transactionRef={transactionRef}
+            />
 
             <PaymentModal
                 open={paymentModalOpen}
