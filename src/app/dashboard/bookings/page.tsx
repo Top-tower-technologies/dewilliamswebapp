@@ -8,10 +8,10 @@ import { GuestDetailsCard } from '@/components/reusable/GuestDetailsCard'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { TriangleAlert, CheckCircle, LogIn, LogOut, CreditCard, X } from 'lucide-react'
-import { PosForm } from './new-booking/page'
 import axiosInstance from '@/api/axiosInstance'
 import { set } from 'date-fns'
 import { parseCurrency } from '@/components/reusable/FormatCurrency'
+import { PosForm } from '@/components/reusable/PosForm'
 
 // ====== TYPE DEFINITIONS ======
 interface ApiBookingData {
@@ -517,7 +517,7 @@ const BookingPage: React.FC = () => {
         <PosForm
           posDialogOpen={modals.pos}
           serviceId={posData.serviceId}
-          setPosDialogOpen={(open) => setModals(prev => ({ ...prev, pos: open }))}
+          setPosDialogOpen={(open:any) => setModals(prev => ({ ...prev, pos: open }))}
           totalAmount={posData.totalAmount}
           transactionRef={posData.transactionRef}
         />
