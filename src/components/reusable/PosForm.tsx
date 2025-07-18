@@ -1,5 +1,4 @@
 "use client"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
@@ -40,7 +39,13 @@ const MessageDisplay = ({
     );
 };
 
-export const PosForm = ({ totalAmount, transactionRef, serviceId, posDialogOpen, setPosDialogOpen }: PosFormProps) => {
+export const PosForm = ({
+    totalAmount,
+    transactionRef,
+    serviceId,
+    posDialogOpen,
+    setPosDialogOpen,
+}: PosFormProps) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         payment_method: '',
@@ -51,20 +56,21 @@ export const PosForm = ({ totalAmount, transactionRef, serviceId, posDialogOpen,
         notes: '',
     });
     const [message, setMessage] = useState({
-        message: "", // ✅ renamed
-        type: "error" as "success" | "error",
+        message: '',
+        type: 'error' as 'success' | 'error',
         isVisible: false,
     });
+
     useEffect(() => {
         if (message.isVisible) {
             const timer = setTimeout(() => {
-                setMessage(prev => ({ ...prev, isVisible: false }));
+                setMessage((prev) => ({ ...prev, isVisible: false }));
             }, 5000);
             return () => clearTimeout(timer);
         }
     }, [message]);
 
-    const handleChange = (e: any) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -85,16 +91,29 @@ export const PosForm = ({ totalAmount, transactionRef, serviceId, posDialogOpen,
                     notes: formData.notes,
                 },
                 {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+                    headers: { Authorization: `Bearer ${localStorage.getItem('AuthKey')}` },
                 }
             );
-            setMessage({ message: "Payment processed successfully.", type: "success", isVisible: true });
-            setFormData({ payment_method: '', receipt_number: '', pos_terminal_id: '', email: '', description: '', notes: '' });
+
+            setMessage({
+                message: 'Payment processed successfully.',
+                type: 'success',
+                isVisible: true,
+            });
+            setFormData({
+                payment_method: '',
+                receipt_number: '',
+                pos_terminal_id: '',
+                email: '',
+                description: '',
+                notes: '',
+            });
             setPosDialogOpen(false);
         } catch (error: any) {
             setMessage({
-                message: error.response?.data?.message || "An error occurred while processing the payment.",
-                type: "error",
+                message:
+                    error.response?.data?.message || 'An error occurred while processing the payment.',
+                type: 'error',
                 isVisible: true,
             });
             console.error(error);
@@ -103,27 +122,52 @@ export const PosForm = ({ totalAmount, transactionRef, serviceId, posDialogOpen,
         }
     };
 
+    if (!posDialogOpen) return null;
+
     return (
-        <Dialog open={posDialogOpen} onOpenChange={setPosDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Physical Payment Processing</DialogTitle>
-                </DialogHeader>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 space-y-5 relative">
+                <h2 className="text-2xl font-semibold text-center">Physical Payment Processing</h2>
 
                 <div className="space-y-4">
                     <MessageDisplay
-                        message={message.message} // ✅ explicitly map the keys
+                        message={message.message}
                         type={message.type}
                         isVisible={message.isVisible}
                     />
-                    <Input name="amount" type='number' readOnly value={totalAmount} />
-                    <Input name="receipt_number" placeholder="Receipt Number" onChange={handleChange} value={formData.receipt_number} />
-                    <Input name="pos_terminal_id" placeholder="POS Terminal ID" onChange={handleChange} value={formData.pos_terminal_id} />
+                    <Input name="amount" type="number" readOnly value={totalAmount} />
+                    <Input
+                        name="receipt_number"
+                        placeholder="Receipt Number"
+                        onChange={handleChange}
+                        value={formData.receipt_number}
+                    />
+                    <Input
+                        name="pos_terminal_id"
+                        placeholder="POS Terminal ID"
+                        onChange={handleChange}
+                        value={formData.pos_terminal_id}
+                    />
                     <Input name="reference" placeholder="Reference" readOnly value={transactionRef} />
-                    <Input name="email" placeholder="Customer Email" onChange={handleChange} value={formData.email} />
-                    <Input name="description" placeholder="Description" onChange={handleChange} value={formData.description} />
+                    <Input
+                        name="email"
+                        placeholder="Customer Email"
+                        onChange={handleChange}
+                        value={formData.email}
+                    />
+                    <Input
+                        name="description"
+                        placeholder="Description"
+                        onChange={handleChange}
+                        value={formData.description}
+                    />
                     <Input name="service_id" placeholder="Service ID" readOnly value={serviceId} />
-                    <Textarea name="notes" placeholder="Notes (optional)" onChange={handleChange} value={formData.notes} />
+                    <Textarea
+                        name="notes"
+                        placeholder="Notes (optional)"
+                        onChange={handleChange}
+                        value={formData.notes}
+                    />
                 </div>
 
                 <Button onClick={handleFormSubmit} className="mt-4 w-full" disabled={loading}>
@@ -133,10 +177,17 @@ export const PosForm = ({ totalAmount, transactionRef, serviceId, posDialogOpen,
                             Processing...
                         </div>
                     ) : (
-                        "Submit Payment"
+                        'Submit Payment'
                     )}
                 </Button>
-            </DialogContent>
-        </Dialog>
+
+                <button
+                    className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+                    onClick={() => setPosDialogOpen(false)}
+                >
+                    ✕
+                </button>
+            </div>
+        </div>
     );
 };

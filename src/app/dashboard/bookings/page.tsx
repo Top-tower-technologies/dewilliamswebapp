@@ -26,6 +26,17 @@ interface ApiBookingData {
   created_at: string
   transaction_ref: string
 }
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  description: string;
+  confirmText: string;
+  iconBg: string;
+  icon: React.ReactNode;
+  actionLoading?: boolean;
+}
 
 interface ApiResponse {
   statusCode: number
@@ -104,8 +115,8 @@ const getActionsForStatus = (status: string): ActionItem[] => {
 
   const actionMap: Record<string, ActionItem[]> = {
     initiated: [
+      { key: 'payment', label: 'Make Payment', icon: <CreditCard size={16} />, variant: 'default' },
       { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
-      { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' }
     ],
     confirmed: [
       { key: 'checkin', label: 'Check In', icon: <LogIn size={16} />, variant: 'default' },
@@ -176,9 +187,9 @@ const useBookingActions = (fetchReservations: () => Promise<void>) => {
     })
   }
 
-  const cancelBooking = async (guestId: string) => {
+  const cancelBooking = async (id: string) => {
     await executeAction(async () => {
-      const response = await axiosInstance.patch(`/staff/reservations/${guestId}/cancel`, {}, {
+      const response = await axiosInstance.patch(`/staff/reservations/${id}/cancel`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
       })
       if (!response.data.success) {
@@ -274,7 +285,6 @@ const BookingPage: React.FC = () => {
   const closeModal = (modalType: keyof typeof modals) => {
     setModals(prev => ({ ...prev, [modalType]: false }))
     if (modalType !== 'pos') setSelectedBooking(null)
-    window.location.reload()
   }
 
   // Action handlers
@@ -321,7 +331,7 @@ const BookingPage: React.FC = () => {
           closeModal('confirm')
           break
         case 'cancel':
-          await cancelBooking(selectedBooking.guest_id)
+          await cancelBooking(selectedBooking.id)
           closeModal('cancel')
           break
         case 'checkout':
@@ -363,7 +373,6 @@ const BookingPage: React.FC = () => {
     }
     return item[column.key as keyof BookingData]
   }
-
   // Effects
   useEffect(() => {
     fetchReservations()
@@ -414,37 +423,40 @@ const BookingPage: React.FC = () => {
     )
   }
 
-  // Modal components
-  const ConfirmationModal: React.FC<{
-    isOpen: boolean
-    onClose: () => void
-    onConfirm: () => void
-    title: string
-    description: string
-    confirmText: string
-    iconBg: string
-    icon: React.ReactNode
-  }> = ({ isOpen, onClose, onConfirm, title, description, confirmText, iconBg, icon }) => (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
-        <div className={`p-8 ${iconBg} rounded-full grid place-items-start`}>
-          {icon}
+  const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    title,
+    description,
+    confirmText,
+    iconBg,
+    icon,
+    actionLoading = false,
+  }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-9 space-y-3">
+          <div className={`p-8 ${iconBg} rounded-full grid place-items-start w-1/2 mx-auto`}>
+            {icon}
+          </div>
+          <h2 className="text-2xl font-semibold text-center">{title}</h2>
+          <p className="text-center text-md text-gray-600">{description}</p>
+          <div className="grid space-y-2">
+            <Button onClick={onConfirm} disabled={actionLoading}>
+              {actionLoading ? "Processing..." : confirmText}
+            </Button>
+            <Button variant="ghost" onClick={onClose} disabled={actionLoading}>
+              No, Go back
+            </Button>
+          </div>
         </div>
-        <DialogTitle className="text-2xl">{title}</DialogTitle>
-        <DialogDescription className="text-center text-md">
-          {description}
-        </DialogDescription>
-        <div className="grid space-y-2">
-          <Button onClick={onConfirm} disabled={actionLoading}>
-            {actionLoading ? 'Processing...' : confirmText}
-          </Button>
-          <Button variant="ghost" onClick={onClose} disabled={actionLoading}>
-            No, Go back
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
+      </div>
+    );
+  };
+
 
   return (
     <MainLayout
@@ -484,7 +496,7 @@ const BookingPage: React.FC = () => {
         <ConfirmationModal
           isOpen={modals.confirm}
           onClose={() => closeModal('confirm')}
-          onConfirm={() => handleActionConfirm('confirm')}
+          onConfirm={() => router.push('/dashboard/reservation')}
           title="Confirm Booking?"
           description={`Are you sure you want to confirm the booking for ${selectedBooking?.name}? Room ${selectedBooking?.roomNo} will be reserved.`}
           confirmText="Yes, Confirm Booking"
@@ -495,7 +507,7 @@ const BookingPage: React.FC = () => {
         <ConfirmationModal
           isOpen={modals.checkin}
           onClose={() => closeModal('checkin')}
-          onConfirm={() => handleActionConfirm('checkin')}
+          onConfirm={() => router.push('/dashboard/reservation')}
           title="Check In Guest?"
           description={`Are you sure you want to check in ${selectedBooking?.name} to room ${selectedBooking?.roomNo}?`}
           confirmText="Yes, Check In"
@@ -506,7 +518,7 @@ const BookingPage: React.FC = () => {
         <ConfirmationModal
           isOpen={modals.checkout}
           onClose={() => closeModal('checkout')}
-          onConfirm={() => handleActionConfirm('checkout')}
+          onConfirm={() => router.push('/dashboard/reservation')}
           title="Check Out Guest?"
           description={`Are you sure you want to check out ${selectedBooking?.name} from room ${selectedBooking?.roomNo}?`}
           confirmText="Yes, Check Out"
@@ -517,7 +529,7 @@ const BookingPage: React.FC = () => {
         <PosForm
           posDialogOpen={modals.pos}
           serviceId={posData.serviceId}
-          setPosDialogOpen={(open:any) => setModals(prev => ({ ...prev, pos: open }))}
+          setPosDialogOpen={(open: any) => setModals(prev => ({ ...prev, pos: open }))}
           totalAmount={posData.totalAmount}
           transactionRef={posData.transactionRef}
         />
