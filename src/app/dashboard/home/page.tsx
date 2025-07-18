@@ -5,9 +5,11 @@ import DashboardCard from "@/components/reusable/DashboardCard";
 import axiosInstance from "@/api/axiosInstance";
 import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { DynamicTable } from "@/components/reusable/GuestTable";
+import { formatToNaira } from "@/components/reusable/FormatCurrency";
 
 const page = () => {
   const [tableData, setTableData] = useState([]);
+  const [userRole, setUserRole] = useState<any>("");
   const [dashboardData, setDashboardData] = useState({
     total_reservations: 0,
     pending_reservations: 0,
@@ -17,6 +19,7 @@ const page = () => {
     available_rooms: 0,
     occupied_apartments: 0,
     available_apartments: 0,
+    total_revenue: 0,
   });
 
   useEffect(() => {
@@ -25,8 +28,9 @@ const page = () => {
         const response = await axiosInstance.get("/staff/dashboard",
           { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } }
         );
-        console.log(response.data)
+        // console.log(response.data)
         setDashboardData(response.data);
+        console.log("Dashboard data fetched:", response.data);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       }
@@ -46,7 +50,7 @@ const page = () => {
           ...guest,
           id: guest.id ? guest.id.slice(0, 10) : guest.id,
         }));
-        console.log("Fetched guests:", guests);
+        // console.log("Fetched guests:", guests);
         setTableData(guests);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -56,31 +60,36 @@ const page = () => {
     fetchTableData();
   }, []);
 
-const handleDownloadBtn = async () => {
-  try {
-    const response = await axiosInstance.get("/reservation/download", {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('AuthKey')}`
-      },
-      responseType: 'blob'  // 👈 VERY important
-    });
+  useEffect(() => {
+    const role = localStorage.getItem("UserRole")
+    setUserRole(role)
+  }, []);
 
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
+  const handleDownloadBtn = async () => {
+    try {
+      const response = await axiosInstance.get("/reservation/download", {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('AuthKey')}`
+        },
+        responseType: 'blob'  // 👈 VERY important
+      });
 
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'reservations.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error('Download failed:', err);
-  }
-};
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'reservations.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+    }
+  };
 
 
   const columns = [
@@ -109,13 +118,23 @@ const handleDownloadBtn = async () => {
   return (
     <MainLayout buttonText={"Download data"} handleClick={handleDownloadBtn}>
       <section className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-        <DashboardCard
-          title="Total Reservations"
-          value={dashboardData.total_reservations.toString()}
-          percentageChange="N/A"
-          isPositive
-          subtitle="Total reservations made"
-        />
+        {userRole === "super_admin" || userRole === "admin" ? (
+          <DashboardCard
+            title="Total Revenue"
+            value={formatToNaira(dashboardData.total_revenue)}
+            percentageChange="N/A"
+            isPositive
+            subtitle="Total revenue made"
+          />
+        ) : (
+          <DashboardCard
+            title="Total Reservations"
+            value={dashboardData.total_reservations.toString()}
+            percentageChange="N/A"
+            isPositive
+            subtitle="Total reservations made"
+          />
+        )}
         <DashboardCard
           title="Occupied Rooms"
           value={`${dashboardData.occupied_rooms}/${dashboardData.occupied_rooms + dashboardData.available_rooms}`}

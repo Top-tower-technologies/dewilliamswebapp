@@ -1,83 +1,343 @@
 "use client"
-import MainLayout from '@/components/layout/MainLayout'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import MainLayout from '@/components/layout/MainLayout'
 import { DynamicTable } from '@/components/reusable/GuestTable'
 import { GuestDetailsCard } from '@/components/reusable/GuestDetailsCard'
-import axiosInstance from '@/api/axiosInstance'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { TriangleAlert, CheckCircle, User, LogIn, LogOut, CreditCard, Clock, X } from 'lucide-react'
+import { TriangleAlert, CheckCircle, LogIn, LogOut, CreditCard, X } from 'lucide-react'
+import axiosInstance from '@/api/axiosInstance'
+import { set } from 'date-fns'
+import { parseCurrency } from '@/components/reusable/FormatCurrency'
+import { PosForm } from '@/components/reusable/PosForm'
 
-// Define types for better type safety
+// ====== TYPE DEFINITIONS ======
 interface ApiBookingData {
-  guest_id: string;
-  full_name: string;
-  booking_id: string;
-  service_no: string;
-  phone: string;
-  total_amount: string;
-  occupancy: number;
-  status: string;
-  created_at: string;
+  guest_id: string
+  full_name: string
+  booking_id: string
+  service_no: string
+  phone: string
+  total_amount: string
+  occupancy: number
+  status: string
+  created_at: string
+  transaction_ref: string
 }
 
 interface ApiResponse {
-  statusCode: number;
-  message: string;
+  statusCode: number
+  message: string
   data: {
-    data: ApiBookingData[];
+    data: ApiBookingData[]
     pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  };
-  success: boolean;
+      total: number
+      page: number
+      limit: number
+      totalPages: number
+    }
+  }
+  success: boolean
 }
 
-interface TableData {
-  id: string;
-  name: string;
-  number: string;
-  roomNo: string;
-  created_at: string;
-  price: string;
-  status: string;
-  guest_id: string;
-  occupancy: number;
+interface BookingData {
+  id: string
+  name: string
+  number: string
+  roomNo: string
+  created_at: string
+  price: string
+  status: string
+  guest_id: string
+  occupancy: number
+  transaction_ref: string
 }
 
 interface ActionItem {
-  key: string;
-  label: string;
-  icon?: React.ReactNode;
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary';
+  key: string
+  label: string
+  icon?: React.ReactNode
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary'
 }
 
-const page = () => {
+interface PaginationInfo {
+  currentPage: number
+  totalPages: number
+  totalItems: number
+  itemsPerPage: number
+}
+
+// ====== CONSTANTS ======
+const ITEMS_PER_PAGE = 10
+
+const STATUS_COLORS = {
+  confirmed: 'bg-green-100 text-green-800',
+  initiated: 'bg-yellow-100 text-yellow-800',
+  cancelled: 'bg-red-100 text-red-800',
+  completed: 'bg-blue-100 text-blue-800',
+  deposited: 'bg-purple-100 text-purple-800',
+  expired: 'bg-gray-100 text-gray-800',
+  checked_in: 'bg-blue-100 text-blue-800',
+  checked_out: 'bg-gray-100 text-gray-800',
+  pending: 'bg-yellow-100 text-yellow-800',
+  default: 'bg-gray-100 text-gray-800'
+} as const
+
+const BADGE_VARIANTS = {
+  confirmed: 'default',
+  initiated: 'secondary',
+  cancelled: 'destructive',
+  completed: 'outline',
+  deposited: 'secondary',
+  expired: 'destructive',
+  checked_in: 'default',
+  checked_out: 'outline',
+  pending: 'secondary',
+  default: 'outline'
+} as const
+
+// ====== UTILITY FUNCTIONS ======
+const getActionsForStatus = (status: string): ActionItem[] => {
+  const normalizedStatus = status.toLowerCase()
+
+  const actionMap: Record<string, ActionItem[]> = {
+    initiated: [
+      { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
+      { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' }
+    ],
+    confirmed: [
+      { key: 'checkin', label: 'Check In', icon: <LogIn size={16} />, variant: 'default' },
+      { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' }
+    ],
+    pending: [
+      { key: 'payment', label: 'Make Payment', icon: <CreditCard size={16} />, variant: 'default' }
+    ],
+    deposited: [
+      { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' }
+    ],
+    checked_in: [
+      { key: 'checkout', label: 'Check Out', icon: <LogOut size={16} />, variant: 'default' }
+    ]
+  }
+
+  return actionMap[normalizedStatus] || []
+}
+
+const transformApiData = (apiData: ApiBookingData[]): BookingData[] => {
+  return apiData.map(item => ({
+    id: item.booking_id,
+    name: item.full_name,
+    number: item.phone,
+    roomNo: item.service_no,
+    created_at: item.created_at.slice(0, 10),
+    price: `₦${parseFloat(item.total_amount).toLocaleString()}`,
+    status: item.status,
+    guest_id: item.guest_id,
+    occupancy: item.occupancy,
+    transaction_ref: item.transaction_ref
+  }))
+}
+
+const getStatusColor = (status: string): string => {
+  return STATUS_COLORS[status.toLowerCase() as keyof typeof STATUS_COLORS] || STATUS_COLORS.default
+}
+
+const formatStatusDisplay = (status: string): string => {
+  return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
+}
+
+// ====== CUSTOM HOOKS ======
+const useBookingActions = (fetchReservations: () => Promise<void>) => {
+  const [actionLoading, setActionLoading] = useState(false)
+
+  const executeAction = async (action: () => Promise<void>) => {
+    try {
+      setActionLoading(true)
+      await action()
+      await fetchReservations()
+    } catch (error) {
+      console.error('Action failed:', error)
+      throw error
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const confirmBooking = async (bookingId: string) => {
+    await executeAction(async () => {
+      const response = await axiosInstance.post(`/staff/bookings/${bookingId}/confirm`, {}, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      })
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to confirm booking')
+      }
+    })
+  }
+
+  const cancelBooking = async (guestId: string) => {
+    await executeAction(async () => {
+      const response = await axiosInstance.patch(`/staff/reservations/${guestId}/cancel`, {}, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      })
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to cancel booking')
+      }
+    })
+  }
+
+  const checkoutGuest = async (guestId: string, bookingId: string) => {
+    await executeAction(async () => {
+      const response = await axiosInstance.post(`/staff/guests/${guestId}/checkout/${bookingId}`, {}, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      })
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to check out guest')
+      }
+    })
+  }
+
+  return { confirmBooking, cancelBooking, checkoutGuest, actionLoading }
+}
+
+// ====== MAIN COMPONENT ======
+const BookingPage: React.FC = () => {
   const router = useRouter()
-  const [bookingData, setBookingData] = useState<TableData[]>([])
+
+  // Data state
+  const [bookingData, setBookingData] = useState<BookingData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // Pagination state
-  const [paginationInfo, setPaginationInfo] = useState({
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>({
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 10
+    itemsPerPage: ITEMS_PER_PAGE
   })
 
   // Modal states
-  const [cancelModalOpen, setCancelModalOpen] = useState(false)
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
-  const [checkinModalOpen, setCheckinModalOpen] = useState(false)
-  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false)
-  const [selectedBooking, setSelectedBooking] = useState<TableData | null>(null)
-  const [actionLoading, setActionLoading] = useState(false)
+  const [modals, setModals] = useState({
+    cancel: false,
+    confirm: false,
+    checkin: false,
+    checkout: false,
+    pos: false
+  })
 
+  const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null)
+  const [posData, setPosData] = useState({
+    serviceId: undefined as number | undefined,
+    totalAmount: undefined as number | undefined,
+    transactionRef: undefined as string | undefined
+  })
+
+  // Fetch reservations
+  const fetchReservations = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await axiosInstance.get(`/staff/reservations?page=1&limit=8`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
+      })
+
+      if (response.data.success && response.data.data) {
+        const transformedData = transformApiData(response.data.data.data)
+        setBookingData(transformedData)
+
+        setPaginationInfo({
+          currentPage: response.data.data.pagination.page,
+          totalPages: response.data.data.pagination.totalPages,
+          totalItems: response.data.data.pagination.total,
+          itemsPerPage: response.data.data.pagination.limit
+        })
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch reservations')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching data')
+      console.error('Error fetching reservations:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const { confirmBooking, cancelBooking, checkoutGuest, actionLoading } = useBookingActions(fetchReservations)
+
+  // Modal handlers
+  const openModal = (modalType: keyof typeof modals, booking?: BookingData) => {
+    if (booking) setSelectedBooking(booking)
+    setModals(prev => ({ ...prev, [modalType]: true }))
+  }
+
+  const closeModal = (modalType: keyof typeof modals) => {
+    setModals(prev => ({ ...prev, [modalType]: false }))
+    if (modalType !== 'pos') setSelectedBooking(null)
+    window.location.reload()
+  }
+
+  // Action handlers
+  const handleRowAction = (actionKey: string, item: BookingData) => {
+    setSelectedBooking(item)
+
+    switch (actionKey) {
+      case 'confirm':
+        openModal('confirm', item)
+        break
+      case 'cancel':
+        openModal('cancel', item)
+        break
+      case 'checkin':
+        openModal('checkin', item)
+        break
+      case 'checkout':
+        openModal('checkout', item)
+        break
+      case 'payment':
+        setPosData({
+          serviceId: item.roomNo ? parseInt(item.roomNo) : undefined,
+          totalAmount: item.price ? parseCurrency(item.price) : undefined,
+          transactionRef: item.transaction_ref || undefined
+        })
+        console.log("POS Data:", item)
+        openModal('pos', item)
+        break
+      case 'details':
+        router.push(`/dashboard/bookings/${item.id}`)
+        break
+      default:
+        console.warn(`Unknown action: ${actionKey}`)
+    }
+  }
+
+  const handleActionConfirm = async (actionType: string) => {
+    if (!selectedBooking) return
+
+    try {
+      switch (actionType) {
+        case 'confirm':
+          await confirmBooking(selectedBooking.id)
+          closeModal('confirm')
+          break
+        case 'cancel':
+          await cancelBooking(selectedBooking.guest_id)
+          closeModal('cancel')
+          break
+        case 'checkout':
+          await checkoutGuest(selectedBooking.guest_id, selectedBooking.id)
+          closeModal('checkout')
+          break
+        case 'checkin':
+          router.push("/dashboard/reservation")
+          break
+      }
+    } catch (error) {
+      setError(`Failed to ${actionType} booking. Please try again.`)
+    }
+  }
+
+  // Table configuration
   const columns = [
     { key: 'id', header: 'Booking ID', cellClassName: 'font-medium' },
     { key: 'name', header: 'Full Name' },
@@ -89,250 +349,34 @@ const page = () => {
       key: 'status',
       header: 'Reservation',
       type: 'badge',
-      badgeVariant: (status: string) => {
-        switch (status.toLowerCase()) {
-          case 'confirmed': return 'default';
-          case 'initiated': return 'secondary';
-          case 'cancelled': return 'destructive';
-          case 'completed': return 'outline';
-          case 'deposited': return 'secondary';
-          case 'expired': return 'destructive';
-          case 'checked_in': return 'default';
-          case 'checked_out': return 'outline';
-          default: return 'outline';
-        }
-      }
+      badgeVariant: (status: string) => BADGE_VARIANTS[status.toLowerCase() as keyof typeof BADGE_VARIANTS] || BADGE_VARIANTS.default
     }
-  ];
+  ]
 
-  // Dynamic actions based on status
-  const getActionsForStatus = (status: string): ActionItem[] => {
-    const normalizedStatus = status.toLowerCase();
-
-    switch (normalizedStatus) {
-      case 'initiated':
-        return [
-          { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
-          { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
-        ];
-
-      case 'confirmed':
-        return [
-          { key: 'checkin', label: 'Check In', icon: <LogIn size={16} />, variant: 'default' },
-          { key: 'cancel', label: 'Cancel Booking', icon: <X size={16} />, variant: 'destructive' },
-        ];
-
-      case 'deposited':
-        return [
-          { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' },
-        ];
-
-      case 'checked_in':
-        return [
-          { key: 'checkout', label: 'Check Out', icon: <LogOut size={16} />, variant: 'default' },
-        ];
-
-      case 'cancelled':
-      case 'expired':
-      case 'checked_out':
-      default:
-        return [];
-    }
-  };
-
-  // Transform API data to match table structure
-  const transformApiData = (apiData: ApiBookingData[]): TableData[] => {
-    return apiData.map(item => ({
-      id: item.booking_id,
-      name: item.full_name,
-      number: item.phone,
-      roomNo: item.service_no,
-      created_at: item.created_at.slice(0, 10), // Format date to YYYY-MM-DD HH:mm
-      price: `₦${parseFloat(item.total_amount).toLocaleString()}`,
-      status: item.status,
-      guest_id: item.guest_id,
-      occupancy: item.occupancy
-    }));
-  };
-
-  // Fetch reservations data
-  const fetchReservations = async (page: number = 1, limit: number = 10) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const response = await axiosInstance.get(`/staff/reservations?page=${page}&limit=${limit}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-      });
-
-      console.log(response.data);
-
-      if (response.data.success && response.data.data) {
-        const transformedData = transformApiData(response.data.data.data);
-        setBookingData(transformedData);
-
-        // Update pagination info
-        setPaginationInfo({
-          currentPage: response.data.data.pagination.page,
-          totalPages: response.data.data.pagination.totalPages,
-          totalItems: response.data.data.pagination.total,
-          itemsPerPage: response.data.data.pagination.limit
-        });
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch reservations');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
-      console.error('Error fetching reservations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle page changes from the table
-  const handlePageChange = (page: number) => {
-    fetchReservations(page, paginationInfo.itemsPerPage);
-  };
-
-  // Action Functions
-  const confirmBooking = async (booking: TableData) => {
-    try {
-      setActionLoading(true);
-      const response = await axiosInstance.post(`/staff/bookings/${booking.id}/confirm`, {}, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-      });
-
-      if (response.data.success) {
-        console.log('Booking confirmed successfully');
-        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
-        setConfirmModalOpen(false);
-        setSelectedBooking(null);
-      } else {
-        throw new Error(response.data.message || 'Failed to confirm booking');
-      }
-    } catch (error) {
-      console.error('Error confirming booking:', error);
-      setError('Failed to confirm booking. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const cancelBooking = async (booking: TableData) => {
-    try {
-      setActionLoading(true);
-      const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-      });
-
-      if (response.data.success) {
-        console.log('Booking cancelled successfully');
-        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
-        setCancelModalOpen(false);
-        setSelectedBooking(null);
-      } else {
-        throw new Error(response.data.message || 'Failed to cancel booking');
-      }
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-      setError('Failed to cancel booking. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const checkoutGuest = async (booking: TableData) => {
-    try {
-      setActionLoading(true);
-      const response = await axiosInstance.post(`/staff/guests/${booking.guest_id}/checkout/${booking.id}`, {}, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
-      });
-
-      if (response.data.success) {
-        console.log('Guest checked out successfully');
-        await fetchReservations(paginationInfo.currentPage, paginationInfo.itemsPerPage);
-        setCheckoutModalOpen(false);
-        setSelectedBooking(null);
-      } else {
-        throw new Error(response.data.message || 'Failed to check out guest');
-      }
-    } catch (error) {
-      console.error('Error checking out guest:', error);
-      setError('Failed to check out guest. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Fetch data on component mount
-  useEffect(() => {
-    fetchReservations(1, 10); // Start with page 1
-  }, []);
-
-  // Handle row actions
-  const handleRowAction = async (actionKey: string, item: TableData, index: number) => {
-    console.log(`Action: ${actionKey}`, item);
-
-    setSelectedBooking(item);
-
-    switch (actionKey) {
-      case 'confirm':
-        setConfirmModalOpen(true);
-        break;
-
-      case 'cancel':
-        setCancelModalOpen(true);
-        break;
-
-      case 'checkin':
-        setCheckinModalOpen(true);
-        break;
-
-      case 'checkout':
-        setCheckoutModalOpen(true);
-        break;
-
-      case 'details':
-        console.log(`Viewing details for ${item.name}`);
-        router.push(`/dashboard/bookings/${item.id}`);
-        break;
-
-      default:
-        console.log(`Unknown action: ${actionKey}`);
-        break;
-    }
-  };
-
-  // Custom cell renderer
-  const renderCell = (item: TableData, column: any) => {
+  const renderCell = (item: BookingData, column: any) => {
     if (column.key === 'status') {
-      const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-          case 'confirmed': return 'bg-green-100 text-green-800';
-          case 'initiated': return 'bg-yellow-100 text-yellow-800';
-          case 'cancelled': return 'bg-red-100 text-red-800';
-          case 'completed': return 'bg-blue-100 text-blue-800';
-          case 'deposited': return 'bg-purple-100 text-purple-800';
-          case 'expired': return 'bg-gray-100 text-gray-800';
-          case 'checked_in': return 'bg-blue-100 text-blue-800';
-          case 'checked_out': return 'bg-gray-100 text-gray-800';
-          default: return 'bg-gray-100 text-gray-800';
-        }
-      };
-
       return (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-          {item.status.charAt(0).toUpperCase() + item.status.slice(1).replace('_', ' ')}
+          {formatStatusDisplay(item.status)}
         </span>
-      );
+      )
     }
-    return item[column.key as keyof TableData];
-  };
+    return item[column.key as keyof BookingData]
+  }
 
-  // Show loading state
+  // Effects
+  useEffect(() => {
+    fetchReservations()
+  }, [])
+
+  // Loading state
   if (loading && bookingData.length === 0) {
     return (
-      <MainLayout navigation={<p className='text-[20px] font-[400]'>Booking</p>} buttonText={"New Booking"} handleClick={() => router.push("/dashboard/bookings/new-booking")}>
+      <MainLayout
+        navigation={<p className='text-[20px] font-[400]'>Booking</p>}
+        buttonText="New Booking"
+        handleClick={() => router.push("/dashboard/bookings/new-booking")}
+      >
         <div className='p-4'>
           <GuestDetailsCard>
             <div className="flex justify-center items-center h-64">
@@ -342,13 +386,17 @@ const page = () => {
           </GuestDetailsCard>
         </div>
       </MainLayout>
-    );
+    )
   }
 
-  // Show error state
+  // Error state
   if (error && bookingData.length === 0) {
     return (
-      <MainLayout navigation={<p className='text-[20px] font-[400]'>Booking</p>} buttonText={"New Booking"} handleClick={() => router.push("/dashboard/bookings/new-booking")}>
+      <MainLayout
+        navigation={<p className='text-[20px] font-[400]'>Booking</p>}
+        buttonText="New Booking"
+        handleClick={() => router.push("/dashboard/bookings/new-booking")}
+      >
         <div className='p-4'>
           <GuestDetailsCard>
             <div className="flex flex-col justify-center items-center h-64">
@@ -358,161 +406,124 @@ const page = () => {
                 </svg>
               </div>
               <p className="text-red-600 mb-4">Error: {error}</p>
-              <button
-                onClick={() => fetchReservations(1, 10)}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Retry
-              </button>
+              <Button onClick={fetchReservations}>Retry</Button>
             </div>
           </GuestDetailsCard>
         </div>
       </MainLayout>
-    );
+    )
   }
 
+  // Modal components
+  const ConfirmationModal: React.FC<{
+    isOpen: boolean
+    onClose: () => void
+    onConfirm: () => void
+    title: string
+    description: string
+    confirmText: string
+    iconBg: string
+    icon: React.ReactNode
+  }> = ({ isOpen, onClose, onConfirm, title, description, confirmText, iconBg, icon }) => (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
+        <div className={`p-8 ${iconBg} rounded-full grid place-items-start`}>
+          {icon}
+        </div>
+        <DialogTitle className="text-2xl">{title}</DialogTitle>
+        <DialogDescription className="text-center text-md">
+          {description}
+        </DialogDescription>
+        <div className="grid space-y-2">
+          <Button onClick={onConfirm} disabled={actionLoading}>
+            {actionLoading ? 'Processing...' : confirmText}
+          </Button>
+          <Button variant="ghost" onClick={onClose} disabled={actionLoading}>
+            No, Go back
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+
   return (
-    <MainLayout navigation={<p className='text-[20px] font-[400]'>Booking</p>} buttonText={"New Booking"} handleClick={() => router.push("/dashboard/bookings/new-booking")}>
+    <MainLayout
+      navigation={<p className='text-[20px] font-[400]'>Booking</p>}
+      buttonText="New Booking"
+      handleClick={() => router.push("/dashboard/bookings/new-booking")}
+    >
       <div className='p-4'>
         <GuestDetailsCard>
           <DynamicTable
             columns={columns}
             data={bookingData}
-            actions={(row: TableData) => getActionsForStatus(row.status)}
-            paginationMode="server"
+            actions={(row: BookingData) => getActionsForStatus(row.status)}
             paginationInfo={paginationInfo}
-            onPageChange={handlePageChange}
+            onPageChange={fetchReservations}
             showCheckbox={true}
             showActions={true}
             onRowAction={handleRowAction}
             renderCell={renderCell}
             loading={loading}
+            itemsPerPage={ITEMS_PER_PAGE}
           />
         </GuestDetailsCard>
 
-        {/* All your modals remain the same */}
-        {/* Cancel Booking Modal */}
-        <Dialog open={cancelModalOpen} onOpenChange={() => setCancelModalOpen(false)}>
-          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
-            <div className="p-8 bg-[#FFF1F2] rounded-full grid place-items-start">
-              <TriangleAlert size={100} className="text-[#ED1522]" />
-            </div>
-            <DialogTitle className="text-2xl">Cancel Booking?</DialogTitle>
-            <DialogDescription className="text-center text-md">
-              Are you sure you want to cancel the booking for <strong>{selectedBooking?.name}</strong>?
-              This action cannot be reversed.
-            </DialogDescription>
+        {/* Modals */}
+        <ConfirmationModal
+          isOpen={modals.cancel}
+          onClose={() => closeModal('cancel')}
+          onConfirm={() => handleActionConfirm('cancel')}
+          title="Cancel Booking?"
+          description={`Are you sure you want to cancel the booking for ${selectedBooking?.name}? This action cannot be reversed.`}
+          confirmText="Yes, Cancel Booking"
+          iconBg="bg-[#FFF1F2]"
+          icon={<TriangleAlert size={100} className="text-[#ED1522]" />}
+        />
 
-            <div className="grid space-y-2">
-              <Button
-                variant="destructive"
-                onClick={() => selectedBooking && cancelBooking(selectedBooking)}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Cancelling...' : 'Yes, Cancel Booking'}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setCancelModalOpen(false)}
-                disabled={actionLoading}
-              >
-                No, Go back
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <ConfirmationModal
+          isOpen={modals.confirm}
+          onClose={() => closeModal('confirm')}
+          onConfirm={() => handleActionConfirm('confirm')}
+          title="Confirm Booking?"
+          description={`Are you sure you want to confirm the booking for ${selectedBooking?.name}? Room ${selectedBooking?.roomNo} will be reserved.`}
+          confirmText="Yes, Confirm Booking"
+          iconBg="bg-[#F0F9FF]"
+          icon={<CheckCircle size={100} className="text-[#0369A1]" />}
+        />
 
+        <ConfirmationModal
+          isOpen={modals.checkin}
+          onClose={() => closeModal('checkin')}
+          onConfirm={() => handleActionConfirm('checkin')}
+          title="Check In Guest?"
+          description={`Are you sure you want to check in ${selectedBooking?.name} to room ${selectedBooking?.roomNo}?`}
+          confirmText="Yes, Check In"
+          iconBg="bg-[#F0FDF4]"
+          icon={<LogIn size={100} className="text-[#15803D]" />}
+        />
 
-        {/* Confirm Booking Modal */}
-        <Dialog open={confirmModalOpen} onOpenChange={() => setConfirmModalOpen(false)}>
-          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
-            <div className="p-8 bg-[#F0F9FF] rounded-full grid place-items-start">
-              <CheckCircle size={100} className="text-[#0369A1]" />
-            </div>
-            <DialogTitle className="text-2xl">Confirm Booking?</DialogTitle>
-            <DialogDescription className="text-center text-md">
-              Are you sure you want to confirm the booking for <strong>{selectedBooking?.name}</strong>?
-              Room {selectedBooking?.roomNo} will be reserved.
-            </DialogDescription>
+        <ConfirmationModal
+          isOpen={modals.checkout}
+          onClose={() => closeModal('checkout')}
+          onConfirm={() => handleActionConfirm('checkout')}
+          title="Check Out Guest?"
+          description={`Are you sure you want to check out ${selectedBooking?.name} from room ${selectedBooking?.roomNo}?`}
+          confirmText="Yes, Check Out"
+          iconBg="bg-[#FEF3C7]"
+          icon={<LogOut size={100} className="text-[#D97706]" />}
+        />
 
-            <div className="grid space-y-2">
-              <Button
-                onClick={() => selectedBooking && confirmBooking(selectedBooking)}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Confirming...' : 'Yes, Confirm Booking'}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setConfirmModalOpen(false)}
-                disabled={actionLoading}
-              >
-                No, Go back
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Check In Modal */}
-        <Dialog open={checkinModalOpen} onOpenChange={() => setCheckinModalOpen(false)}>
-          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
-            <div className="p-8 bg-[#F0FDF4] rounded-full grid place-items-start">
-              <LogIn size={100} className="text-[#15803D]" />
-            </div>
-            <DialogTitle className="text-2xl">Check In Guest?</DialogTitle>
-            <DialogDescription className="text-center text-md">
-              Are you sure you want to check in <strong>{selectedBooking?.name}</strong> to room {selectedBooking?.roomNo}?
-            </DialogDescription>
-
-            <div className="grid space-y-2">
-              <Button
-                onClick={() => router.push("/dashboard/reservation")}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Checking In...' : 'Yes, Check In'}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setCheckinModalOpen(false)}
-                disabled={actionLoading}
-              >
-                No, Go back
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Check Out Modal */}
-        <Dialog open={checkoutModalOpen} onOpenChange={() => setCheckoutModalOpen(false)}>
-          <DialogContent className="grid place-items-center space-y-3 p-9 max-w-sm">
-            <div className="p-8 bg-[#FEF3C7] rounded-full grid place-items-start">
-              <LogOut size={100} className="text-[#D97706]" />
-            </div>
-            <DialogTitle className="text-2xl">Check Out Guest?</DialogTitle>
-            <DialogDescription className="text-center text-md">
-              Are you sure you want to check out <strong>{selectedBooking?.name}</strong> from room {selectedBooking?.roomNo}?
-            </DialogDescription>
-
-            <div className="grid space-y-2">
-              <Button
-                onClick={() => selectedBooking && checkoutGuest(selectedBooking)}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Checking Out...' : 'Yes, Check Out'}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setCheckoutModalOpen(false)}
-                disabled={actionLoading}
-              >
-                No, Go back
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <PosForm
+          posDialogOpen={modals.pos}
+          serviceId={posData.serviceId}
+          setPosDialogOpen={(open:any) => setModals(prev => ({ ...prev, pos: open }))}
+          totalAmount={posData.totalAmount}
+          transactionRef={posData.transactionRef}
+        />
       </div>
     </MainLayout>
   )
 }
 
-export default page
+export default BookingPage

@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import axiosInstance from '@/api/axiosInstance';
 import Toast from '@/components/reusable/Toast';
 import { PaymentModal } from '@/components/reusable/PaymentModal';
+import { PosForm } from '@/components/reusable/PosForm';
 
 // interface Room {
 //     id: string;
@@ -46,12 +47,20 @@ interface ToastState {
     type: "success" | "error" | "info" | "warning";
 }
 
+
+
+
+
 const NewBookingPage = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [roomsLoading, setRoomsLoading] = useState(false);
     const [rooms, setRooms] = useState<any>([]);
     const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
+    const [transactionRef, setTransactionRef] = useState<string>();
+    const [serviceId, setServiceId] = useState<number>();
+    const [totalAmount, setTotalAmount] = useState<number>();
+
     const [toast, setToast] = useState<ToastState>({
         show: false,
         message: "",
@@ -59,6 +68,7 @@ const NewBookingPage = () => {
     });
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [paymentDetails, setPaymentDetails] = useState<any>({})
+    const [posDialogOpen, setPosDialogOpen] = useState(false);
 
     const [bookingData, setBookingData] = useState<BookingData>({
         check_in: '',
@@ -76,6 +86,7 @@ const NewBookingPage = () => {
         reservation_source: 'walk_in',
         address: '',
     });
+
 
     // Toast helper function
     const showToast = (message: string, type: "success" | "error" | "info" | "warning" = "success") => {
@@ -117,7 +128,7 @@ const NewBookingPage = () => {
                 requestBody
             );
 
-            console.log("Available rooms response:", response.data);
+            // console.log("Available rooms response:", response.data);
             setRooms(response.data.data || []);
 
             // Reset selected room if it's no longer available
@@ -209,6 +220,9 @@ const NewBookingPage = () => {
             showToast("Booking created successfully!", "success");
             setPaymentDetails(response.data.data)
             console.log("Booking response:", response.data.data);
+            setTransactionRef(response.data.data.transaction_ref)
+            setServiceId(response.data.data.service_id);
+            setTotalAmount(response.data.data.total);
 
         } catch (error: any) {
             console.error("Error creating booking:", error);
@@ -237,14 +251,9 @@ const NewBookingPage = () => {
         showToast("Form has been reset", "info");
     };
 
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-amber-50">
-            {/* Toast Component - Always rendered but conditionally visible */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-            />
-
             <MainLayout
                 navigation={
                     <div className='flex justify-center gap-x-3 items-center backdrop-blur-sm bg-white/70 rounded-full px-6 py-2 shadow-sm border'>
@@ -525,6 +534,7 @@ const NewBookingPage = () => {
                         </CardContent>
                     </Card>
 
+
                     {/* Booking Summary */}
                     <Card className="backdrop-blur-sm bg-white/80 shadow-xl sticky top-6">
                         <CardHeader className="bg-gray-100 rounded-t-lg">
@@ -566,19 +576,6 @@ const NewBookingPage = () => {
                                     </div>
 
                                     <div className="space-y-2">
-                                        {/* <div className="flex justify-between text-sm">
-                                            <span>{nights} Night{nights !== 1 ? 's' : ''}</span>
-                                            <span>₦{roomPrice.toLocaleString()}/night</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span>Subtotal</span>
-                                            <span>₦{subtotal.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span>VAT (7.5%)</span>
-                                            <span>₦{vat.toLocaleString()}</span>
-                                        </div>
-                                        <hr className="" /> */}
                                         <div className="flex justify-between font-bold text-lg">
                                             <span>Total</span>
                                             <span className="text-yellow-600">₦{selectedRoom.category.price.base_price.toLocaleString()}</span>
@@ -607,7 +604,7 @@ const NewBookingPage = () => {
                                 {loading ? (
                                     <div className="flex items-center gap-2">
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        Creating Booking...
+                                        Processing...
                                     </div>
                                 ) : (
                                     "Create Booking"
@@ -618,6 +615,14 @@ const NewBookingPage = () => {
                 </div>
             </MainLayout>
 
+            <PosForm
+                posDialogOpen={posDialogOpen}
+                serviceId={serviceId}
+                setPosDialogOpen={setPosDialogOpen}
+                totalAmount={totalAmount}
+                transactionRef={transactionRef}
+            />
+
             <PaymentModal
                 open={paymentModalOpen}
                 onOpenChange={setPaymentModalOpen}
@@ -625,13 +630,23 @@ const NewBookingPage = () => {
                 email={paymentDetails?.guest?.email || ""}
                 amount={paymentDetails?.total || 0}
                 guestName={paymentDetails?.guest?.name || ""}
+                handleOpenPaymentForm={() => {
+                    setPosDialogOpen(true);
+                }}
                 onPaymentComplete={() => {
-                    console.log("Payment marked as complete");
+                    // console.log("Payment marked as complete");
                     router.push('/dashboard/bookings')
                 }}
             />
+
+
         </div>
     )
 }
 
 export default NewBookingPage
+
+
+
+
+

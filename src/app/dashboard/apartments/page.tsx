@@ -50,7 +50,7 @@ export default function Dashboard() {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` },
           // params: { service_type: 'room_service' }
         });
-        console.log(response.data)
+        // console.log(response.data)
         setRooms(response.data.data);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);

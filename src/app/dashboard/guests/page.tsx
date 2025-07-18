@@ -25,7 +25,7 @@ export default function Dashboard() {
         const response = await axiosInstance.get("/staff/guests/stats",
           { headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` } }
         );
-        console.log(response.data)
+        // console.log(response.data)
         setDashboardData(response.data);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -45,7 +45,7 @@ export default function Dashboard() {
           ...guest,
           id: guest.id ? guest.id.slice(0, 10) : guest.id,
         }));
-        console.log("Fetched guests:", guests);
+        // console.log("Fetched guests:", guests);
         setGuestTableData(guests);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);

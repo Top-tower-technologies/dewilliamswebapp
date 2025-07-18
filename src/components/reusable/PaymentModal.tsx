@@ -11,6 +11,7 @@ interface PaymentModalProps {
   email?: string;
   amount?: string;
   guestName?: string;
+  handleOpenPaymentForm?: () => void;
   onPaymentComplete?: () => void;
 }
 
@@ -21,7 +22,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   email,
   amount,
   guestName,
-  onPaymentComplete
+  onPaymentComplete,
+  handleOpenPaymentForm
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -81,6 +83,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           >
             <ExternalLink size={16} />
             Open Payment Link
+          </Button>
+          <Button 
+            className="w-full flex items-center justify-center gap-2" 
+            onClick={handleOpenPaymentForm}
+          >
+            <CreditCard size={16} />
+            Physical Payment
           </Button>
 
           {/* Secondary actions */}

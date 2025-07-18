@@ -33,7 +33,7 @@ const Page = () => {
         },
       });
 
-      console.log("Response:", response.data.data.data);
+      // console.log("Response:", response.data.data.data);
 
       // Adjust this if your API response shape differs
       setBookingData(response.data.data.data || []);
@@ -68,7 +68,7 @@ const Page = () => {
   };
 
   const handleRowAction = (action: string, row: TableData) => {
-    console.log("Action:", action, "on", row);
+    // console.log("Action:", action, "on", row);
   };
 
   const getActionsForStatus = (status: string) => [
