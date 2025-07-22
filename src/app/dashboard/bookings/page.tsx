@@ -7,7 +7,7 @@ import { DynamicTable } from '@/components/reusable/GuestTable'
 import { GuestDetailsCard } from '@/components/reusable/GuestDetailsCard'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { TriangleAlert, CheckCircle, LogIn, LogOut, CreditCard, X } from 'lucide-react'
+import { TriangleAlert, CheckCircle, LogIn, LogOut, CreditCard, X, Info } from 'lucide-react'
 import axiosInstance from '@/api/axiosInstance'
 import { set } from 'date-fns'
 import { parseCurrency } from '@/components/reusable/FormatCurrency'
@@ -129,7 +129,8 @@ const getActionsForStatus = (status: string): ActionItem[] => {
       { key: 'confirm', label: 'Confirm Booking', icon: <CheckCircle size={16} />, variant: 'default' }
     ],
     checked_in: [
-      { key: 'checkout', label: 'Check Out', icon: <LogOut size={16} />, variant: 'default' }
+      { key: 'details', label: 'View Details', icon: <Info size={16} />, variant: 'default' },
+      { key: 'checkout', label: 'Check Out', icon: <LogOut size={16} />, variant: 'default' },
     ]
   }
 
@@ -340,6 +341,9 @@ const BookingPage: React.FC = () => {
           break
         case 'checkin':
           router.push("/dashboard/reservation")
+          break
+        case 'details':
+          router.push(`/dashboard/bookings/${selectedBooking.id}`)
           break
       }
     } catch (error) {
