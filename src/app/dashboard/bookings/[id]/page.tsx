@@ -114,7 +114,9 @@ const BookingDetails = () => {
         if (!booking?.id) return;
 
         try {
-            const response = await axiosInstance.post(`/staff/reservations/${booking.id}/reminder`);
+            const response = await axiosInstance.post(`/staff/reservations/${booking.id}/reminder`, {}, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('AuthKey')}` },
+            });
 
             if (response.status === 200) {
                 alert('Booking reminder sent successfully');
