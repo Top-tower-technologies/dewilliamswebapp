@@ -61,6 +61,7 @@ export const PosForm = ({
         isVisible: false,
     });
 
+
     useEffect(() => {
         if (message.isVisible) {
             const timer = setTimeout(() => {
@@ -70,11 +71,22 @@ export const PosForm = ({
         }
     }, [message]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleFormSubmit = async () => {
+        if (!formData.payment_method) {
+            setMessage({
+                message: 'Please select a payment method.',
+                type: 'error',
+                isVisible: true,
+            });
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const response = await axiosInstance.post(
@@ -112,7 +124,7 @@ export const PosForm = ({
         } catch (error: any) {
             setMessage({
                 message:
-                    error.response?.data?.message || 'An error occurred while processing the payment.',
+                    error.response?.data?.errors || 'An error occurred while processing the payment.',
                 type: 'error',
                 isVisible: true,
             });
@@ -136,6 +148,23 @@ export const PosForm = ({
                         isVisible={message.isVisible}
                     />
                     <Input name="amount" type="number" readOnly value={totalAmount} />
+                    <select
+                        name="payment_method"
+                        className="w-full border rounded-md p-2"
+                        onChange={handleChange}
+                        value={formData.payment_method}
+                        required
+                    >
+                        <option value="">Select Payment Method</option>
+                        <option value="card">Card</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="ussd">USSD</option>
+                        <option value="qr">QR</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="cash">Cash</option>
+                        <option value="pos">POS</option>
+                        <option value="cheque">Cheque</option>
+                    </select>
                     <Input
                         name="receipt_number"
                         placeholder="Receipt Number"
