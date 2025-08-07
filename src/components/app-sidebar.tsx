@@ -42,7 +42,7 @@ export function AppSidebar() {
     if (typeof window !== "undefined") {
       const userRole = localStorage.getItem("UserRole");
       setIsSuperAdmin(userRole === "super_admin" || userRole === "admin");
-      setIsAccountant(userRole === "account");
+      setIsAccountant(userRole === "finance_manager");
     }
   }, []);
 

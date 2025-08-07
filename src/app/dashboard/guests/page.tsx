@@ -41,11 +41,11 @@ export default function Dashboard() {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('AuthKey')}` }
         });
         // Adjust this line based on your actual API response structure
-        const guests = (response.data || []).map((guest: any) => ({
+        const guests = (response.data.data || []).map((guest: any) => ({
           ...guest,
           id: guest.id ? guest.id.slice(0, 10) : guest.id,
         }));
-        // console.log("Fetched guests:", guests);
+        console.log("Fetched guests:", guests);
         setGuestTableData(guests);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -59,9 +59,9 @@ export default function Dashboard() {
     { key: 'id', header: 'ID', type: 'text', className: 'w-1/3' },
     { key: 'first_name', header: 'First Name', type: 'text', className: 'w-1/3' },
     { key: 'last_name', header: 'Last Name', type: 'text', className: 'w-1/3' },
+    { key: 'email', header: 'Email', type: 'text', className: 'w-1/4' },
     { key: 'phone', header: 'Phone', type: 'text', className: 'w-1/3' },
-    { key: 'room', header: 'Room', type: 'text', className: 'w-1/4' },
-    { key: 'current_activity_status', header: 'Status', type: 'badge', className: 'w-1/4' },
+    // { key: 'current_activity_status', header: 'Status', type: 'badge', className: 'w-1/4' },
   ];
 
   return (
@@ -101,14 +101,14 @@ export default function Dashboard() {
               <DynamicTable
                 columns={colums}
                 data={guestTableData}
-                actions={[
-                  { key: 'book', label: 'Book Room' },
-                  { key: 'maintenance', label: 'Schedule Maintenance' },
-                  { key: 'details', label: 'View Details' }
-                ]}
+                // actions={[
+                //   { key: 'book', label: 'Book Room' },
+                //   { key: 'maintenance', label: 'Schedule Maintenance' },
+                //   { key: 'details', label: 'View Details' }
+                // ]}
                 showCheckbox={true}
                 itemsPerPage={10}
-                showActions={true}
+                showActions={false}
                 onRowAction={(actionKey, item, index) => {
                   console.log(`Action: ${actionKey}`, item);
                   // Add your action handling logic here

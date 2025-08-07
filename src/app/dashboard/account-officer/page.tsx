@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GuestDetailsCard } from "@/components/reusable/GuestDetailsCard";
 import { DynamicTable } from "@/components/reusable/GuestTable";
 import axiosInstance from "@/api/axiosInstance";
+import RevenueCard from "@/components/reusable/RevenueCard";
 
 interface TableData {
     id: string;
@@ -122,7 +123,8 @@ export default function ReconciliationPage() {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="space-y-3 p-6">
+            <RevenueCard />
             <GuestDetailsCard>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold">Pending Reconciliation</h2>
