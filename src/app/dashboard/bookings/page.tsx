@@ -256,6 +256,7 @@ const BookingPage: React.FC = () => {
 
       if (response.data.success && response.data.data) {
         const transformedData = transformApiData(response.data.data.data)
+        // console.log(transformedData)
         setBookingData(transformedData)
 
         setPaginationInfo({
@@ -524,7 +525,7 @@ const BookingPage: React.FC = () => {
           onClose={() => closeModal('checkout')}
           onConfirm={() => router.push('/dashboard/reservation')}
           title="Check Out Guest?"
-          description={`Are you sure you want to check out ${selectedBooking?.name} from room ${selectedBooking?.roomNo}?`}
+          description={`Are you sure you want to check out ${selectedBooking?.id} from room ${selectedBooking?.guest_id}?`}
           confirmText="Yes, Check Out"
           iconBg="bg-[#FEF3C7]"
           icon={<LogOut size={100} className="text-[#D97706]" />}
