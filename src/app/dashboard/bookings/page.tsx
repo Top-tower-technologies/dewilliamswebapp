@@ -523,9 +523,9 @@ const BookingPage: React.FC = () => {
         <ConfirmationModal
           isOpen={modals.checkout}
           onClose={() => closeModal('checkout')}
-          onConfirm={() => router.push('/dashboard/reservation')}
+          onConfirm={() => handleActionConfirm('checkout')}
           title="Check Out Guest?"
-          description={`Are you sure you want to check out ${selectedBooking?.id} from room ${selectedBooking?.guest_id}?`}
+          description={`Are you sure you want to check out ${selectedBooking?.name} from room ${selectedBooking?.roomNo}?`}
           confirmText="Yes, Check Out"
           iconBg="bg-[#FEF3C7]"
           icon={<LogOut size={100} className="text-[#D97706]" />}
